@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import asyncio
 import time
@@ -90,7 +91,7 @@ class RedisMemoryCluster:
         return self.redis_client
 
     @property
-    def client(self) -> Optional[redis.Redis]:
+    def client(self) -> Optional["redis.Redis"]:
         return self.redis_client
 
     def _get_pool(self, url: str) -> redis.ConnectionPool:
