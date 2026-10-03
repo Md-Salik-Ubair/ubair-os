@@ -14,7 +14,7 @@ export interface NotificationItem {
   created_at: string;
 }
 
-// Ambient Time-of-Day & Milestone Generator (0 Backend, 0 Permission)
+// Ambient Time-of-Day & Milestone Generator (Hydration Safe - Only runs on client)
 function getClientDynamicNotifications(email: string): NotificationItem[] {
   if (typeof window === 'undefined' || !email) return [];
   const items: NotificationItem[] = [];
@@ -50,7 +50,7 @@ function getClientDynamicNotifications(email: string): NotificationItem[] {
     created_at: now.toISOString()
   });
 
-  // 2. User Journey & Loyalty Milestones (Tracked via LocalStorage)
+  // 2. User Journey & Loyalty Milestones
   try {
     const joinKey = `ubair_first_seen_${email}`;
     let joinTime = localStorage.getItem(joinKey);
@@ -113,12 +113,15 @@ export default function NotificationInbox({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Local Preferences (Pins, Client Dismissals & Ambient Reads)
+  // Dynamic Client Items (Hydration Safe State)
+  const [dynamicItems, setDynamicItems] = useState<NotificationItem[]>([]);
+
+  // Local Preferences (Pins, Dismissals & Client Read States)
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [clientReadIds, setClientReadIds] = useState<string[]>([]);
 
-  // Real-Time Online Toast Banner State
+  // Real-Time Toast Banner State
   const [activeToast, setActiveToast] = useState<NotificationItem | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
@@ -127,10 +130,12 @@ export default function NotificationInbox({
   const containerRef = useRef<HTMLDivElement>(null);
   const cleanEmail = useMemo(() => userEmail.trim().toLowerCase(), [userEmail]);
 
-  // 1. Hydrate Pins, Dismissals & Client Read States from LocalStorage
+  // 1. Hydrate dynamic items & localStorage on client mount (Safe Lifecycle)
   useEffect(() => {
     if (typeof window === 'undefined' || !cleanEmail) return;
     try {
+      setDynamicItems(getClientDynamicNotifications(cleanEmail));
+
       const storedPins = localStorage.getItem(`ubair_pinned_notifs_${cleanEmail}`);
       if (storedPins) setPinnedIds(JSON.parse(storedPins));
 
@@ -154,7 +159,6 @@ export default function NotificationInbox({
       const data = await res.json();
       const serverNotifs: NotificationItem[] = data.notifications || [];
 
-      // Check for incoming new messages while user is active
       if (!isInitialLoadRef.current && isBackgroundPoll) {
         const freshArrivals = serverNotifs.filter(n => !knownIdsRef.current.has(n.id));
         if (freshArrivals.length > 0) {
@@ -179,7 +183,6 @@ export default function NotificationInbox({
     }
   }, [cleanEmail, apiBase]);
 
-  // Initial Fetch & Active Polling Interval (every 25 seconds)
   useEffect(() => {
     fetchNotifications(false);
     const interval = setInterval(() => {
@@ -215,7 +218,6 @@ export default function NotificationInbox({
 
   // Mark Single Notification as Read
   const handleMarkAsRead = async (notif: NotificationItem) => {
-    // 1. Client-Side Dynamic Items (Ambient & Milestones)
     if (notif.id.startsWith('ambient-') || notif.id.startsWith('milestone-')) {
       if (clientReadIds.includes(notif.id)) return;
       const updated = [...clientReadIds, notif.id];
@@ -226,7 +228,6 @@ export default function NotificationInbox({
       return;
     }
 
-    // 2. Server-Side Items
     const isDirect = notif.recipient_email === cleanEmail;
     const isAlreadyRead = isDirect ? notif.is_read : (notif.read_by || []).includes(cleanEmail);
     if (isAlreadyRead) return;
@@ -260,8 +261,6 @@ export default function NotificationInbox({
 
   // Mark All Notifications as Read
   const handleMarkAllRead = async () => {
-    // Mark client dynamic notifications read
-    const dynamicItems = getClientDynamicNotifications(cleanEmail);
     const dynamicIds = dynamicItems.map(d => d.id);
     const updatedClientReads = Array.from(new Set([...clientReadIds, ...dynamicIds]));
     setClientReadIds(updatedClientReads);
@@ -269,7 +268,6 @@ export default function NotificationInbox({
       localStorage.setItem(`ubair_client_read_notifs_${cleanEmail}`, JSON.stringify(updatedClientReads));
     }
 
-    // Mark server notifications read
     if (unreadCount > 0) {
       setNotifications(prev =>
         prev.map(n => ({
@@ -301,7 +299,7 @@ export default function NotificationInbox({
     }
   };
 
-  // Toggle Pin Status (Local User Preference)
+  // Toggle Pin Status
   const handleTogglePin = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setPinnedIds(prev => {
@@ -313,7 +311,7 @@ export default function NotificationInbox({
     });
   };
 
-  // Dismiss / Erase Notification from User View
+  // Dismiss Notification
   const handleDismissNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDismissedIds(prev => {
@@ -325,9 +323,8 @@ export default function NotificationInbox({
     });
   };
 
-  // Clear All / Dismiss Entire Inbox
+  // Clear All
   const handleClearAll = () => {
-    const dynamicItems = getClientDynamicNotifications(cleanEmail);
     const allIds = [...notifications.map(n => n.id), ...dynamicItems.map(d => d.id)];
     setDismissedIds(prev => {
       const merged = Array.from(new Set([...prev, ...allIds]));
@@ -339,21 +336,21 @@ export default function NotificationInbox({
     setUnreadCount(0);
   };
 
-  // Total Unread Count (Server + Dynamic Client Items)
+  // Total Unread Count
   const totalUnreadCount = useMemo(() => {
-    const dynamicItems = getClientDynamicNotifications(cleanEmail).filter(n => !dismissedIds.includes(n.id));
-    const dynamicUnread = dynamicItems.filter(item => !clientReadIds.includes(item.id)).length;
+    const validDynamic = dynamicItems.filter(n => !dismissedIds.includes(n.id));
+    const dynamicUnread = validDynamic.filter(item => !clientReadIds.includes(item.id)).length;
     return unreadCount + dynamicUnread;
-  }, [cleanEmail, dismissedIds, clientReadIds, unreadCount]);
+  }, [dynamicItems, dismissedIds, clientReadIds, unreadCount]);
 
-  // Filtered & Sorted Notification Feed (Server + Dynamic Ambient Engine)
+  // Combined Feed
   const activeFeed = useMemo(() => {
-    const dynamicItems = getClientDynamicNotifications(cleanEmail).map(item => ({
+    const dynamicWithRead = dynamicItems.map(item => ({
       ...item,
       is_read: clientReadIds.includes(item.id)
     }));
 
-    const combined = [...notifications, ...dynamicItems];
+    const combined = [...notifications, ...dynamicWithRead];
 
     return combined
       .filter(n => !dismissedIds.includes(n.id))
@@ -364,11 +361,10 @@ export default function NotificationInbox({
         if (!aPinned && bPinned) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [notifications, dismissedIds, pinnedIds, clientReadIds, cleanEmail]);
+  }, [notifications, dynamicItems, dismissedIds, pinnedIds, clientReadIds]);
 
   return (
     <>
-      {/* ================= 1. FLOATING REAL-TIME TOAST (Auto-dismiss in 3.5s) ================= */}
       {activeToast && !isOpen && (
         <div 
           onClick={() => {
@@ -411,10 +407,7 @@ export default function NotificationInbox({
         </div>
       )}
 
-      {/* ================= 2. HEADER BELL BUTTON & POPOVER ================= */}
       <div className="relative shrink-0" ref={containerRef}>
-        
-        {/* Clean Flat Bell Trigger */}
         <button
           type="button"
           onClick={() => {
@@ -443,17 +436,13 @@ export default function NotificationInbox({
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
           </svg>
 
-          {/* Micro Amber Ping Indicator */}
           {totalUnreadCount > 0 && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.9)]" />
           )}
         </button>
 
-        {/* ================= 3. INBOX POPOVER WINDOW ================= */}
         {isOpen && (
           <div className="absolute right-0 mt-3 w-[min(92vw,390px)] max-h-[85dvh] bg-[#090a0d] border border-white/[0.1] rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-100 z-50 flex flex-col overflow-hidden [scrollbar-width:none]">
-            
-            {/* Popover Header */}
             <div className="px-4 py-3.5 border-b border-white/[0.06] flex items-center justify-between shrink-0 bg-[#090a0d]/90">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-white tracking-tight">Inbox</span>
@@ -468,7 +457,6 @@ export default function NotificationInbox({
               </div>
 
               <div className="flex items-center gap-2.5">
-                {/* Manual Refresh Trigger */}
                 <button
                   type="button"
                   onClick={() => fetchNotifications(false)}
@@ -513,7 +501,6 @@ export default function NotificationInbox({
               </div>
             </div>
 
-            {/* Notification Stream Feed */}
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-[220px] max-h-[60vh] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [scrollbar-width:thin]">
               {isLoading ? (
                 <div className="h-44 flex flex-col items-center justify-center gap-2 text-center">
@@ -549,7 +536,6 @@ export default function NotificationInbox({
                           : 'bg-white/[0.015] hover:bg-white/[0.035] border-white/[0.04] opacity-80 hover:opacity-100'
                       }`}
                     >
-                      {/* Top Row: Clean Label + Pin & Dismiss Triggers */}
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-wider">
@@ -557,7 +543,6 @@ export default function NotificationInbox({
                           </span>
                         </div>
 
-                        {/* Action Buttons: Pin & Dismiss */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
@@ -580,7 +565,6 @@ export default function NotificationInbox({
                         </div>
                       </div>
 
-                      {/* Title & Body */}
                       <div className="space-y-0.5">
                         <h5 className={`text-xs font-medium ${!isRead ? 'text-white font-semibold' : 'text-neutral-200'}`}>
                           {item.title}
@@ -590,7 +574,6 @@ export default function NotificationInbox({
                         </p>
                       </div>
 
-                      {/* Footer: Sender & Time */}
                       <div className="flex items-center justify-between pt-1 border-t border-white/[0.03] text-[9.5px] font-mono text-neutral-500">
                         <span>{item.sender_name || 'Founder (Ubair OS)'}</span>
                         <span>{new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
@@ -602,7 +585,6 @@ export default function NotificationInbox({
             </div>
           </div>
         )}
-
       </div>
     </>
   );

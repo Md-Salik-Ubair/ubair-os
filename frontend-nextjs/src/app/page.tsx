@@ -1510,7 +1510,7 @@ export default function WorkspacePage() {
               className="flex items-center gap-2 p-1 pl-1.5 pr-1.5 sm:pr-2.5 rounded-full hover:bg-white/[0.08] transition-all cursor-pointer"
             >
               {session?.user?.image ? (
-                <Image src={session.user.image} alt="Profile" width={28} height={28} className="rounded-full bg-neutral-900 object-cover border border-white/10 shrink-0" />
+                <img src={session.user.image} alt="Profile" className="w-7 h-7 rounded-full bg-neutral-900 object-cover border border-white/10 shrink-0" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full bg-white/[0.05] flex items-center justify-center text-xs font-medium text-white border border-white/10 shrink-0">
                   {preferredName.charAt(0)}
