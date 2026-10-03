@@ -306,7 +306,17 @@ const DEFAULT_TIER_LIMITS: Record<string, TierLimits> = {
 
 export default function WorkspacePage() {
   const { data: session, status } = useSession();
+  const [timeGreeting, setTimeGreeting] = useState('Welcome');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setTimeGreeting('Good morning');
+    else if (hour >= 12 && hour < 17) setTimeGreeting('Good afternoon');
+    else if (hour >= 17 && hour < 22) setTimeGreeting('Good evening');
+    else setTimeGreeting('Late night flow');
+  }, []);
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Dynamic User Tier & Quota Limits
@@ -1283,15 +1293,7 @@ export default function WorkspacePage() {
     ? rawNameParts[1]
     : firstToken;
   const preferredName = targetToken.charAt(0).toUpperCase() + targetToken.slice(1).toLowerCase();
-  // Dynamic Time-of-Day Greeting (Hydration-Safe)
-  const [timeGreeting, setTimeGreeting] = useState('Welcome');
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) setTimeGreeting('Good morning');
-    else if (hour >= 12 && hour < 17) setTimeGreeting('Good afternoon');
-    else if (hour >= 17 && hour < 22) setTimeGreeting('Good evening');
-    else setTimeGreeting('Late night flow');
-  }, []);
+  
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
   const hasMessages = messages.length > 0 || isWaitingForNetwork;
