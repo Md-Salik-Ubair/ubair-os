@@ -17,6 +17,6 @@ export const config = {
      * - /assets (Brand assets, logos, wordmarks)
      * - Static asset file extensions (*.png, *.svg, *.ico, etc.)
      */
-    '/((?!login|api/auth|_next/static|_next/image|assets|favicon\\.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|mp3|wav|json)$).*)',
+    '/((?!login|api/auth|_next/static|_next/image|assets|favicon\\.ico|site\\.webmanifest|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|mp3|wav|json|webmanifest)$).*)',
   ],
 };

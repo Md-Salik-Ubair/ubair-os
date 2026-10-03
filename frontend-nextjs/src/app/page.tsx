@@ -1460,42 +1460,41 @@ export default function WorkspacePage() {
             </div>
 
             {hasMessages && isChatActive && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSearchOpen(!isSearchOpen);
-                  if (isSearchOpen) setChatSearchQuery('');
-                }}
-                className={`h-7 px-2 sm:px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
-                  isSearchOpen || chatSearchQuery 
-                    ? 'bg-white/10 text-white border border-white/20 shadow-sm' 
-                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Search conversation"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <span className="hidden sm:inline">Search</span>
-              </button>
-            )}
+              <div className="hidden sm:flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchOpen(!isSearchOpen);
+                    if (isSearchOpen) setChatSearchQuery('');
+                  }}
+                  className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
+                    isSearchOpen || chatSearchQuery 
+                      ? 'bg-white/10 text-white border border-white/20 shadow-sm' 
+                      : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                  title="Search conversation"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <span>Search</span>
+                </button>
 
-            {hasMessages && isChatActive && (
-              <>
                 <div className="h-3 w-[1px] bg-white/10 mx-0.5 shrink-0" />
+
                 <button
                   type="button"
                   onClick={handlePurgeMemory}
-                  className="h-7 px-2 sm:px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
+                  className="h-7 px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
                   title="Clear conversation"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                     <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
-                  <span className="hidden sm:inline">Reset</span>
+                  <span>Reset</span>
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
