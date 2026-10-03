@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="frontend-nextjs/public/assets/ubair-logo.png" alt="Ubair OS Logo" width="90" height="90" />
+  <img src="frontend-nextjs/public/assets/ubair-logo.png" alt="Ubair OS Logo" width="130" height="130" />
 
   # UBAIR OS
   ### The Autonomous Neural Workspace for High-Velocity Builders & Thinkers
@@ -13,7 +13,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
 
   <p align="center">
-    <b>Ubair OS</b> is a multi-modal AI workspace that combines multi-model chat, vector-grounded memory (RAG), and a high-performance visual canvas — running on a resilient, zero-cost cloud mesh with automatic LLM failover.
+    <b>Ubair OS</b> is a multi-modal AI workspace that combines multi-model chat, vector-grounded memory (RAG), and a high-performance visual canvas — running on a resilient, zero-cost cloud mesh with a five-tier automatic LLM failover fleet and a Cloudflare edge layer.
   </p>
 
   <p align="center">
@@ -59,7 +59,7 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 
 | Problem with typical AI tools | How Ubair OS handles it |
 | --- | --- |
-| One provider outage = dead chat | Tiered failover across Groq → Cerebras → Gemini, mid-stream |
+| One provider outage = dead chat | Five-tier failover fleet (Groq → Cerebras → Mistral AI → OpenRouter → Gemini) backed by a Cloudflare edge layer, mid-stream |
 | Context lost between sessions | Per-project vector memory using Supabase + pgvector |
 | Free-tier cold starts (~50s) | Keep-alive cron mesh keeps the gateway warm |
 | Heavy, janky animations | Offscreen-canvas sprite rendering for smooth 60–120 FPS |
@@ -90,8 +90,11 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 ## ✨ Feature Overview
 
 - 🤖 **Multi-model chat** with real-time token streaming over SSE
+- 🛰️ **Five-tier inference fleet** — Groq, Cerebras, Mistral AI, OpenRouter, and Gemini — plus a Cloudflare edge layer for resilience
 - 🧠 **Vector RAG memory** — upload documents, chat with them, isolated per project
-- 🔁 **Automatic LLM failover** on `429` / `503` without breaking the stream
+- 🔁 **Automatic LLM failover** on `429` / `503` / timeouts across every tier without breaking the stream
+- 👁️ **Multimodal vision & context fallback** through Google Gemini
+- ☁️ **Cloudflare edge AI workers** acting as a resilience proxy and last-line safety net
 - 🗂️ **Project workspaces** with isolated memory, documents, and context vaults
 - 🎨 **Image Studio**, **Assessment Arena**, and **Slate** workstations
 - 💻 **Syntax-highlighted code blocks** across 20+ languages with one-click copy
@@ -110,12 +113,15 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 ```mermaid
 flowchart TD
     A["🖥️ Client Browser<br/>Next.js 16 + Tailwind<br/>Offscreen Canvas Engine"] -->|"OAuth + Session Tokens"| B["⚡ FastAPI Async Gateway<br/>SSE Streaming Pipelines"]
-    B --> C{"🔀 Multi-Model Failover Mesh"}
-    C -->|"Tier 1"| D["Groq<br/>Ultra-low latency"]
-    C -->|"Tier 2"| E["Cerebras<br/>High token throughput"]
-    C -->|"Tier 3"| F["Gemini<br/>Fallback safety"]
-    B --> G[("🗄️ Supabase<br/>PostgreSQL + pgvector<br/>Row Level Security")]
-    H["⏰ Cron Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
+    B --> C{"🔀 Multi-Model Failover Fleet"}
+    C -->|"Tier 1"| D["Groq<br/>Ultra-low latency LPU streaming"]
+    C -->|"Tier 2"| E["Cerebras<br/>Extreme throughput reasoning"]
+    C -->|"Tier 3"| F["Mistral AI<br/>High-parameter architectural logic"]
+    C -->|"Tier 4"| G["OpenRouter Mesh<br/>Dynamic multi-model routing"]
+    C -->|"Tier 5"| H["Google Gemini<br/>Multimodal vision & context fallback"]
+    C -->|"Edge Layer"| I["☁️ Cloudflare<br/>Edge AI workers & resilience proxy"]
+    B --> J[("🗄️ Supabase<br/>PostgreSQL + pgvector<br/>Row Level Security")]
+    K["⏰ Cron Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
 ```
 
 ### Failover Flow
@@ -126,7 +132,10 @@ sequenceDiagram
     participant G as FastAPI Gateway
     participant P1 as Groq (Tier 1)
     participant P2 as Cerebras (Tier 2)
-    participant P3 as Gemini (Tier 3)
+    participant P3 as Mistral AI (Tier 3)
+    participant P4 as OpenRouter (Tier 4)
+    participant P5 as Gemini (Tier 5)
+    participant CF as Cloudflare Edge
 
     U->>G: Send message (SSE stream opens)
     G->>P1: Stream completion request
@@ -134,36 +143,47 @@ sequenceDiagram
     G->>P2: Retry with same context
     P2--xG: 503 Timeout
     G->>P3: Retry with same context
-    P3-->>G: Token stream
+    P3--xG: 429 Rate Limited
+    G->>P4: Retry via dynamic routing
+    P4--xG: Upstream Unavailable
+    G->>P5: Retry with same context
+    P5--xG: 503 Timeout
+    G->>CF: Route through edge AI worker
+    CF-->>G: Token stream
     G-->>U: Continuous SSE stream (no reconnect)
 ```
+
+> The diagram shows the full worst-case path. In normal operation the gateway stops at the first tier that responds.
 
 ### ASCII Overview
 
 ```text
-                  +-----------------------------------------------+
-                  |            CLIENT BROWSER (Vercel)            |
-                  |   Next.js 16 (App Router) + Tailwind CSS      |
-                  |   60-120 FPS Offscreen Canvas Particle Mesh   |
-                  +-----------------------+-----------------------+
-                                          |
-                        OAuth Handshake & Session Tokens
-                                          |
-                                          v
-                  +-----------------------------------------------+
-                  |          FASTAPI ASYNC GATEWAY (Render)       |
-                  |    Event Stream Transports · SSE Pipelines    |
-                  +-----------------------+-----------------------+
-                                          |
-              +---------------------------+---------------------------+
-              |                                                       |
-              v                                                       v
-+------------------------------------+        +------------------------------------+
-|      MULTI-MODEL FAILOVER MESH     |        |        PERSISTENCE & MEMORY        |
-|  • Tier 1: Groq Ultra-Low Latency  |        |  • PostgreSQL Vector RAG Engine    |
-|  • Tier 2: Cerebras Extreme Token  |        |  • Supabase Row Level Security     |
-|  • Tier 3: Gemini Fallback Safety  |        |  • Ephemeral Client Storage Bridges|
-+------------------------------------+        +------------------------------------+
+                       +-----------------------------------------------+
+                       |            CLIENT BROWSER (Vercel)            |
+                       |   Next.js 16 (App Router) + Tailwind CSS      |
+                       |   60-120 FPS Offscreen Canvas Particle Mesh   |
+                       +-----------------------+-----------------------+
+                                               |
+                             OAuth Handshake & Session Tokens
+                                               |
+                                               v
+                       +-----------------------------------------------+
+                       |          FASTAPI ASYNC GATEWAY (Render)       |
+                       |    Event Stream Transports · SSE Pipelines    |
+                       +-----------------------+-----------------------+
+                                               |
+              +--------------------------------+--------------------------------+
+              |                                                                 |
+              v                                                                 v
++--------------------------------------------+    +------------------------------------+
+|        MULTI-MODEL FAILOVER FLEET          |    |        PERSISTENCE & MEMORY        |
+|  • Tier 1: Groq (LPU Streaming)            |    |  • PostgreSQL Vector RAG Engine    |
+|  • Tier 2: Cerebras (Throughput)           |    |  • Supabase Row Level Security     |
+|  • Tier 3: Mistral AI (Arch. Logic)        |    |  • Ephemeral Client Storage Bridges|
+|  • Tier 4: OpenRouter (Mesh Routing)       |    +------------------------------------+
+|  • Tier 5: Gemini (Vision & Context)       |
+|  • Edge  : Cloudflare (Edge AI Proxy)      |
++--------------------------------------------+
               ^
               | (Keep-Alive Autonomous Pingers Every 300s)
 +-------------+----------------------+
@@ -183,7 +203,7 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 ### 2. Provider rate limits killing conversations
 **Problem:** A single LLM provider returning `429` or `503` would end the user's stream.
-**Solution:** A self-healing router shifts to the next tier in the mesh while preserving conversation tree, RAG context, and execution state, so the SSE stream continues uninterrupted.
+**Solution:** A self-healing router walks a five-tier fleet — Groq, Cerebras, Mistral AI, OpenRouter, and Gemini — with a Cloudflare edge layer as the final safety net. Each hop preserves the conversation tree, RAG context, and execution state, so the SSE stream continues uninterrupted.
 
 ### 3. Particle rendering performance
 **Problem:** Computing radial gradients per particle per frame throttles the CPU, especially on mobile.
@@ -221,7 +241,8 @@ This section documents the real problems hit while building Ubair OS and how eac
 | **API Gateway** | Python 3.11, FastAPI, Uvicorn, AsyncIO | Async streaming and multipart form handling |
 | **Auth** | NextAuth.js, Google OAuth 2.0 | Isolated user sessions, zero password footprint |
 | **Vector DB** | Supabase, PostgreSQL, pgvector | Document embeddings, user tiers, feedback storage |
-| **Inference Mesh** | Groq, Cerebras, Google Gemini | Multi-tier failover reasoning fleet |
+| **Inference Mesh** | Groq, Cerebras, Mistral AI, OpenRouter, Google Gemini | Five-tier failover reasoning fleet: low-latency streaming, high-throughput reasoning, architectural logic, dynamic routing, and multimodal fallback |
+| **Edge Infrastructure** | Cloudflare (Edge AI Workers) | Edge AI workers and resilience proxy as the final fallback layer |
 | **Infrastructure** | Vercel, Render, Cron-job.org | 24/7 deployment with keep-alive orchestration |
 
 ---
@@ -251,7 +272,7 @@ ubair-os/
 - **Node.js** v18.18 or higher
 - **Python** v3.10 or higher
 - **Git**
-- A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, and Gemini
+- A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini, plus Cloudflare credentials for the edge layer
 
 ### 1. Clone the repository
 
@@ -312,9 +333,13 @@ Open **http://localhost:3000** — you're in.
 | --- | --- |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (**never expose to the client**) |
-| `GROQ_API_KEY` | Tier 1 inference provider |
-| `CEREBRAS_API_KEY` | Tier 2 inference provider |
-| `GEMINI_API_KEY` | Tier 3 fallback provider |
+| `GROQ_API_KEY` | Tier 1 inference provider (ultra-low latency LPU streaming) |
+| `CEREBRAS_API_KEY` | Tier 2 inference provider (extreme throughput reasoning) |
+| `MISTRAL_API_KEY` | Tier 3 inference provider (high-parameter architectural logic) |
+| `OPENROUTER_API_KEY` | Tier 4 inference provider (dynamic multi-model routing) |
+| `GEMINI_API_KEY` | Tier 5 provider (multimodal vision & context fallback) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID for the edge AI layer |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for edge AI workers and the resilience proxy |
 
 > 💡 Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
 
@@ -326,6 +351,7 @@ Open **http://localhost:3000** — you're in.
 | --- | --- | --- |
 | Frontend | **Vercel** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
 | Backend | **Render** | Web service running `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Edge Layer | **Cloudflare** | Edge AI workers and resilience proxy used as the final fallback tier |
 | Keep-alive | **Cron-job.org** | Ping the gateway every 300 seconds to avoid cold starts |
 
 ---
@@ -336,13 +362,13 @@ Open **http://localhost:3000** — you're in.
 - **Row Level Security:** Supabase RLS policies restrict data access per user.
 - **No public model training:** User code, documents, and prompts are not sold or submitted to public training datasets.
 - **Ephemeral Quick Chat:** Sessions follow an automated 24-hour client memory purge.
-- **Secrets stay server-side:** Service keys live only in backend environment variables.
+- **Secrets stay server-side:** Service keys and provider API keys live only in backend environment variables.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Multi-model failover mesh (Groq → Cerebras → Gemini)
+- [x] Multi-model failover fleet (Groq → Cerebras → Mistral AI → OpenRouter → Gemini → Cloudflare edge)
 - [x] Vector RAG memory with per-project isolation
 - [x] Offscreen canvas particle engine (60–120 FPS)
 - [x] Mobile-optimized input dock & gesture safety
