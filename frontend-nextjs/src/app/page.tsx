@@ -1283,6 +1283,15 @@ export default function WorkspacePage() {
     ? rawNameParts[1]
     : firstToken;
   const preferredName = targetToken.charAt(0).toUpperCase() + targetToken.slice(1).toLowerCase();
+  // Dynamic Time-of-Day Greeting (Hydration-Safe)
+  const [timeGreeting, setTimeGreeting] = useState('Welcome');
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setTimeGreeting('Good morning');
+    else if (hour >= 12 && hour < 17) setTimeGreeting('Good afternoon');
+    else if (hour >= 17 && hour < 22) setTimeGreeting('Good evening');
+    else setTimeGreeting('Late night flow');
+  }, []);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
   const hasMessages = messages.length > 0 || isWaitingForNetwork;
@@ -1765,7 +1774,7 @@ export default function WorkspacePage() {
         {!hasMessages ? (
           <div className="flex-1 flex flex-col items-center justify-center px-4 -mt-8 sm:-mt-12 animate-in fade-in duration-200">
             <h1 className="text-[26px] sm:text-[36px] font-semibold tracking-tight text-white mb-6 sm:mb-8 text-center px-2 drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
-              {activeWorkspace ? activeWorkspace.name : `Welcome, ${preferredName}.`}
+              {activeWorkspace ? activeWorkspace.name : `${timeGreeting}, ${preferredName}.`}
             </h1>
             
             <div className="w-full max-w-3xl">

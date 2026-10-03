@@ -14,6 +14,91 @@ export interface NotificationItem {
   created_at: string;
 }
 
+// Ambient Time-of-Day & Milestone Generator (0 Backend, 0 Permission)
+function getClientDynamicNotifications(email: string): NotificationItem[] {
+  if (typeof window === 'undefined' || !email) return [];
+  const items: NotificationItem[] = [];
+  const now = new Date();
+  const hour = now.getHours();
+  const dateKey = now.toISOString().slice(0, 10);
+
+  // 1. Contextual Time Greetings & Ambient Notes
+  let timeTitle = '';
+  let timeMsg = '';
+  if (hour >= 5 && hour < 12) {
+    timeTitle = '🌅 Morning Clarity & Focus';
+    timeMsg = 'Rise and build. The neural fleet and workspace routers are primed for your morning workflow.';
+  } else if (hour >= 12 && hour < 17) {
+    timeTitle = '⚡ Afternoon Momentum';
+    timeMsg = 'Keep the stride going. Multi-model failover mesh is running at peak throughput.';
+  } else if (hour >= 17 && hour < 22) {
+    timeTitle = '🌆 Evening Creative Hours';
+    timeMsg = 'Reviewing the day or deep in ideation? Your vector vaults and notes bridge are synchronized.';
+  } else {
+    timeTitle = '🌙 Midnight Flow State';
+    timeMsg = 'Night owl mode engaged. Low latency, zero distractions—ambient engines ready.';
+  }
+
+  items.push({
+    id: `ambient-greeting-${dateKey}`,
+    recipient_email: email,
+    title: timeTitle,
+    message: timeMsg,
+    category: 'system',
+    sender_name: 'Ubair OS Ambient',
+    is_read: false,
+    created_at: now.toISOString()
+  });
+
+  // 2. User Journey & Loyalty Milestones (Tracked via LocalStorage)
+  try {
+    const joinKey = `ubair_first_seen_${email}`;
+    let joinTime = localStorage.getItem(joinKey);
+    if (!joinTime) {
+      joinTime = Date.now().toString();
+      localStorage.setItem(joinKey, joinTime);
+    }
+    const daysActive = Math.floor((Date.now() - parseInt(joinTime, 10)) / (1000 * 60 * 60 * 24));
+
+    let milestoneTitle = '';
+    let milestoneMsg = '';
+    let milestoneId = '';
+
+    if (daysActive >= 365) {
+      milestoneId = `milestone-365d-${email}`;
+      milestoneTitle = '👑 1-Year OS Pioneer';
+      milestoneMsg = 'You have been building on Ubair OS for over a year! Thank you for being an indispensable founder-tier user.';
+    } else if (daysActive >= 30) {
+      milestoneId = `milestone-30d-${email}`;
+      milestoneTitle = '🚀 1 Month with Ubair OS';
+      milestoneMsg = 'A full month of intelligence, documents, and compute. Glad to have you shaping the OS with us!';
+    } else if (daysActive >= 7) {
+      milestoneId = `milestone-7d-${email}`;
+      milestoneTitle = '⚡ 1 Week Milestone';
+      milestoneMsg = 'One week into your journey. Hope the multi-tier failover and forge studio are accelerating your output.';
+    } else {
+      milestoneId = `milestone-day0-${email}`;
+      milestoneTitle = '✨ Welcome to Ubair OS';
+      milestoneMsg = 'Your personal neural workspace is online. Explore Forge Studio, Assessment Arena, and multi-tier LLMs.';
+    }
+
+    if (milestoneId) {
+      items.push({
+        id: milestoneId,
+        recipient_email: email,
+        title: milestoneTitle,
+        message: milestoneMsg,
+        category: 'welcome',
+        sender_name: 'Md Salik (Founder)',
+        is_read: false,
+        created_at: new Date(parseInt(joinTime, 10)).toISOString()
+      });
+    }
+  } catch {}
+
+  return items;
+}
+
 interface NotificationInboxProps {
   userEmail: string;
   apiBase?: string;
@@ -28,9 +113,10 @@ export default function NotificationInbox({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Local Preferences (Pins & Client Dismissals)
+  // Local Preferences (Pins, Client Dismissals & Ambient Reads)
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [clientReadIds, setClientReadIds] = useState<string[]>([]);
 
   // Real-Time Online Toast Banner State
   const [activeToast, setActiveToast] = useState<NotificationItem | null>(null);
@@ -41,7 +127,7 @@ export default function NotificationInbox({
   const containerRef = useRef<HTMLDivElement>(null);
   const cleanEmail = useMemo(() => userEmail.trim().toLowerCase(), [userEmail]);
 
-  // 1. Hydrate Pins and Dismissals from LocalStorage
+  // 1. Hydrate Pins, Dismissals & Client Read States from LocalStorage
   useEffect(() => {
     if (typeof window === 'undefined' || !cleanEmail) return;
     try {
@@ -50,6 +136,9 @@ export default function NotificationInbox({
 
       const storedDismissed = localStorage.getItem(`ubair_dismissed_notifs_${cleanEmail}`);
       if (storedDismissed) setDismissedIds(JSON.parse(storedDismissed));
+
+      const storedClientRead = localStorage.getItem(`ubair_client_read_notifs_${cleanEmail}`);
+      if (storedClientRead) setClientReadIds(JSON.parse(storedClientRead));
     } catch {}
   }, [cleanEmail]);
 
@@ -70,7 +159,6 @@ export default function NotificationInbox({
         const freshArrivals = serverNotifs.filter(n => !knownIdsRef.current.has(n.id));
         if (freshArrivals.length > 0) {
           const newest = freshArrivals[0];
-          // Trigger floating 3-second toast banner
           if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
           setActiveToast(newest);
           toastTimeoutRef.current = setTimeout(() => {
@@ -79,7 +167,6 @@ export default function NotificationInbox({
         }
       }
 
-      // Update known IDs registry
       serverNotifs.forEach(n => knownIdsRef.current.add(n.id));
       isInitialLoadRef.current = false;
 
@@ -128,12 +215,22 @@ export default function NotificationInbox({
 
   // Mark Single Notification as Read
   const handleMarkAsRead = async (notif: NotificationItem) => {
-    // Check if already read
+    // 1. Client-Side Dynamic Items (Ambient & Milestones)
+    if (notif.id.startsWith('ambient-') || notif.id.startsWith('milestone-')) {
+      if (clientReadIds.includes(notif.id)) return;
+      const updated = [...clientReadIds, notif.id];
+      setClientReadIds(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`ubair_client_read_notifs_${cleanEmail}`, JSON.stringify(updated));
+      }
+      return;
+    }
+
+    // 2. Server-Side Items
     const isDirect = notif.recipient_email === cleanEmail;
     const isAlreadyRead = isDirect ? notif.is_read : (notif.read_by || []).includes(cleanEmail);
     if (isAlreadyRead) return;
 
-    // Optimistic UI update
     setNotifications(prev =>
       prev.map(n => {
         if (n.id === notif.id) {
@@ -163,36 +260,44 @@ export default function NotificationInbox({
 
   // Mark All Notifications as Read
   const handleMarkAllRead = async () => {
-    if (unreadCount === 0) return;
+    // Mark client dynamic notifications read
+    const dynamicItems = getClientDynamicNotifications(cleanEmail);
+    const dynamicIds = dynamicItems.map(d => d.id);
+    const updatedClientReads = Array.from(new Set([...clientReadIds, ...dynamicIds]));
+    setClientReadIds(updatedClientReads);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`ubair_client_read_notifs_${cleanEmail}`, JSON.stringify(updatedClientReads));
+    }
 
-    // Optimistically mark all in state
-    setNotifications(prev =>
-      prev.map(n => ({
-        ...n,
-        is_read: true,
-        read_by: Array.from(new Set([...(n.read_by || []), cleanEmail]))
-      }))
-    );
-    setUnreadCount(0);
+    // Mark server notifications read
+    if (unreadCount > 0) {
+      setNotifications(prev =>
+        prev.map(n => ({
+          ...n,
+          is_read: true,
+          read_by: Array.from(new Set([...(n.read_by || []), cleanEmail]))
+        }))
+      );
+      setUnreadCount(0);
 
-    // Call mark-read for each unread notification
-    const unreadItems = notifications.filter(n => {
-      const isDirect = n.recipient_email === cleanEmail;
-      return isDirect ? !n.is_read : !(n.read_by || []).includes(cleanEmail);
-    });
+      const unreadItems = notifications.filter(n => {
+        const isDirect = n.recipient_email === cleanEmail;
+        return isDirect ? !n.is_read : !(n.read_by || []).includes(cleanEmail);
+      });
 
-    for (const item of unreadItems) {
-      try {
-        await fetch(`${apiBase}/api/notifications/mark-read`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            notification_id: item.id,
-            user_email: cleanEmail,
-            email: cleanEmail
-          })
-        });
-      } catch {}
+      for (const item of unreadItems) {
+        try {
+          await fetch(`${apiBase}/api/notifications/mark-read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              notification_id: item.id,
+              user_email: cleanEmail,
+              email: cleanEmail
+            })
+          });
+        } catch {}
+      }
     }
   };
 
@@ -222,8 +327,8 @@ export default function NotificationInbox({
 
   // Clear All / Dismiss Entire Inbox
   const handleClearAll = () => {
-    if (notifications.length === 0) return;
-    const allIds = notifications.map(n => n.id);
+    const dynamicItems = getClientDynamicNotifications(cleanEmail);
+    const allIds = [...notifications.map(n => n.id), ...dynamicItems.map(d => d.id)];
     setDismissedIds(prev => {
       const merged = Array.from(new Set([...prev, ...allIds]));
       if (typeof window !== 'undefined') {
@@ -234,9 +339,23 @@ export default function NotificationInbox({
     setUnreadCount(0);
   };
 
-  // Filtered & Sorted Notification Feed
+  // Total Unread Count (Server + Dynamic Client Items)
+  const totalUnreadCount = useMemo(() => {
+    const dynamicItems = getClientDynamicNotifications(cleanEmail).filter(n => !dismissedIds.includes(n.id));
+    const dynamicUnread = dynamicItems.filter(item => !clientReadIds.includes(item.id)).length;
+    return unreadCount + dynamicUnread;
+  }, [cleanEmail, dismissedIds, clientReadIds, unreadCount]);
+
+  // Filtered & Sorted Notification Feed (Server + Dynamic Ambient Engine)
   const activeFeed = useMemo(() => {
-    return notifications
+    const dynamicItems = getClientDynamicNotifications(cleanEmail).map(item => ({
+      ...item,
+      is_read: clientReadIds.includes(item.id)
+    }));
+
+    const combined = [...notifications, ...dynamicItems];
+
+    return combined
       .filter(n => !dismissedIds.includes(n.id))
       .sort((a, b) => {
         const aPinned = pinnedIds.includes(a.id);
@@ -245,7 +364,7 @@ export default function NotificationInbox({
         if (!aPinned && bPinned) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [notifications, dismissedIds, pinnedIds]);
+  }, [notifications, dismissedIds, pinnedIds, clientReadIds, cleanEmail]);
 
   return (
     <>
@@ -295,7 +414,7 @@ export default function NotificationInbox({
       {/* ================= 2. HEADER BELL BUTTON & POPOVER ================= */}
       <div className="relative shrink-0" ref={containerRef}>
         
-        {/* Clean Flat Bell Trigger (No Circle Wrapper) */}
+        {/* Clean Flat Bell Trigger */}
         <button
           type="button"
           onClick={() => {
@@ -325,7 +444,7 @@ export default function NotificationInbox({
           </svg>
 
           {/* Micro Amber Ping Indicator */}
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.9)]" />
           )}
         </button>
@@ -341,9 +460,9 @@ export default function NotificationInbox({
                 <span className="text-[10px] font-mono text-neutral-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
                   {activeFeed.length}
                 </span>
-                {unreadCount > 0 && (
+                {totalUnreadCount > 0 && (
                   <span className="text-[10px] font-mono text-amber-300">
-                    ({unreadCount} new)
+                    ({totalUnreadCount} new)
                   </span>
                 )}
               </div>
@@ -362,7 +481,7 @@ export default function NotificationInbox({
                   </svg>
                 </button>
 
-                {unreadCount > 0 && (
+                {totalUnreadCount > 0 && (
                   <button
                     type="button"
                     onClick={handleMarkAllRead}
@@ -415,7 +534,9 @@ export default function NotificationInbox({
               ) : (
                 activeFeed.map(item => {
                   const isDirect = item.recipient_email === cleanEmail;
-                  const isRead = isDirect ? item.is_read : (item.read_by || []).includes(cleanEmail);
+                  const isRead = item.id.startsWith('ambient-') || item.id.startsWith('milestone-')
+                    ? clientReadIds.includes(item.id)
+                    : (isDirect ? item.is_read : (item.read_by || []).includes(cleanEmail));
                   const isPinned = pinnedIds.includes(item.id);
 
                   return (
@@ -432,7 +553,7 @@ export default function NotificationInbox({
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-wider">
-                            {item.category === 'broadcast' ? 'Announcement' : 'Direct Notice'}
+                            {item.category === 'broadcast' ? 'Announcement' : item.category === 'welcome' ? 'Journey Milestone' : item.category === 'system' ? 'Ambient Transmission' : 'Direct Notice'}
                           </span>
                         </div>
 
