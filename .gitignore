@@ -1,0 +1,28 @@
+# Environment variables (Critical)
+.env
+*.env
+backend-fastapi/.env
+
+# Python virtual environments & cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+backend-fastapi/.venv/
+backend-fastapi/__pycache__/
+
+# Node modules & frontend builds
+node_modules/
+frontend-nextjs/node_modules/
+.next/
+frontend-nextjs/.next/
+out/
+dist/
+build/
+
+# System & OS files
+.DS_Store
+Thumbs.db
+# Local test scripts with API keys
+tests/
+backend-fastapi/tests/

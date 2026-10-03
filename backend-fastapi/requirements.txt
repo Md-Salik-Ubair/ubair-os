@@ -1,0 +1,32 @@
+# 1. CORE SERVER & ENVIRONMENT
+fastapi==0.110.0
+uvicorn==0.29.0
+python-dotenv==1.0.1
+pydantic==2.6.4
+
+# 2. DATABASE, CACHE & MEMORY
+supabase==2.4.5
+redis==5.0.3
+pinecone-client==3.2.2
+
+# 3. AI SDKs & VECTOR EMBEDDINGS
+groq==0.5.0
+google-generativeai==0.4.1
+openai==1.14.0
+voyageai>=0.2.1
+
+# 4. DOCUMENT & TABULAR PARSERS
+python-pptx==0.6.23
+python-docx==1.1.0
+reportlab==4.1.0
+pypdf>=4.0.0
+pandas>=2.2.0
+
+# 5. MULTIMODAL, SPEECH & VISION
+edge-tts>=6.1.10
+Pillow>=10.0.0
+
+# 6. NETWORK, SCRAPING & UTILITIES
+httpx>=0.27.0
+python-multipart>=0.0.9
+beautifulsoup4>=4.12.0
