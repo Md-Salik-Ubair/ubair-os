@@ -23,11 +23,11 @@
   <p align="center">
     <a href="https://ubair-os.vercel.app"><strong>✨ Experience Live App Now →</strong></a>
     &nbsp;•&nbsp;
-    <a href="#architecture"><strong>🏗️ Architecture</strong></a>
+    <a href="#-architecture"><strong>🏗️ Architecture</strong></a>
     &nbsp;•&nbsp;
-    <a href="#local-development-setup"><strong>⚙️ Run Locally</strong></a>
+    <a href="#-local-development-setup"><strong>⚙️ Run Locally</strong></a>
     &nbsp;•&nbsp;
-    <a href="#engineering-challenges-solutions"><strong>🧠 Engineering Decisions</strong></a>
+    <a href="#-engineering-challenges--solutions"><strong>🧠 Engineering Decisions</strong></a>
   </p>
 
 </div>
