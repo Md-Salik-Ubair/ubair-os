@@ -1,8 +1,11 @@
 <div align="center">
 
-  <img src="frontend-nextjs/public/assets/ubair-logo.png" alt="Ubair OS Logo" width="130" height="130" />
+  <h1 align="center">
+    <img src="frontend-nextjs/public/assets/ubair-logo.png" alt="Ubair OS Logo" width="130" height="130" />
+    <br/>
+    UBAIR OS
+  </h1>
 
-  # UBAIR OS
   ### The Autonomous Neural Workspace for High-Velocity Builders & Thinkers
 
   [![Next.js 16](https://img.shields.io/badge/Next.js_16-Turbopack-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
@@ -10,10 +13,11 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-Async_Gateway-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
   [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-Styling-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![Cloudflare](https://img.shields.io/badge/Cloudflare-Edge_Layer-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://www.cloudflare.com/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
 
   <p align="center">
-    <b>Ubair OS</b> is a multi-modal AI workspace that combines multi-model chat, vector-grounded memory (RAG), and a high-performance visual canvas — running on a resilient, zero-cost cloud mesh with a five-tier automatic LLM failover fleet and a Cloudflare edge layer.
+    <b>Ubair OS</b> is a multi-modal AI workspace that combines a four-tier chat failover mesh, Cerebras-powered web search synthesis, Gemini multimodal vision, and vector-grounded memory (RAG) — all running behind a Cloudflare edge layer on a resilient, zero-cost cloud mesh.
   </p>
 
   <p align="center">
@@ -53,13 +57,15 @@
 
 ## 💡 Why Ubair OS
 
-Most AI tools are a single chat box tied to a single model. When that model rate-limits, the conversation dies. Memory is shallow, and the UI is an afterthought.
+Most AI tools are a single chat box tied to a single model. When that model rate-limits, the conversation dies. Memory is shallow, search is slow, and the UI is an afterthought.
 
 Ubair OS was built over **12+ months** to answer one question: *what if an AI workspace stayed fast, remembered context, and never went down — even on free-tier infrastructure?*
 
 | Problem with typical AI tools | How Ubair OS handles it |
 | --- | --- |
-| One provider outage = dead chat | Five-tier failover fleet (Groq → Cerebras → Mistral AI → OpenRouter → Gemini) backed by a Cloudflare edge layer, mid-stream |
+| One provider outage = dead chat | Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini) that preserves context mid-stream |
+| Slow, shallow web-grounded answers | Dedicated Cerebras engine for web search synthesis and query expansion |
+| Text-only assistants | Gemini multimodal vision for file attachments, screenshots, and document RAG parsing |
 | Context lost between sessions | Per-project vector memory using Supabase + pgvector |
 | Free-tier cold starts (~50s) | Keep-alive cron mesh keeps the gateway warm |
 | Heavy, janky animations | Offscreen-canvas sprite rendering for smooth 60–120 FPS |
@@ -90,13 +96,14 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 ## ✨ Feature Overview
 
 - 🤖 **Multi-model chat** with real-time token streaming over SSE
-- 🛰️ **Five-tier inference fleet** — Groq, Cerebras, Mistral AI, OpenRouter, and Gemini — plus a Cloudflare edge layer for resilience
+- 🔁 **Four-tier chat failover mesh** — Groq, Mistral AI, OpenRouter, and Gemini — switching automatically on `429` / `503` without breaking the stream
+- 🔎 **Web Search Synthesis & Query Expansion** powered by Cerebras wafer-scale inference (1,800+ tokens/sec) for fast web retrieval
+- 👁️ **Multimodal Vision** on Google Gemini: file attachment analysis, screenshot understanding, and document RAG parsing
 - 🧠 **Vector RAG memory** — upload documents, chat with them, isolated per project
-- 🔁 **Automatic LLM failover** on `429` / `503` / timeouts across every tier without breaking the stream
-- 👁️ **Multimodal vision & context fallback** through Google Gemini
-- ☁️ **Cloudflare edge AI workers** acting as a resilience proxy and last-line safety net
+- ⚔️ **Assessment Arena & Forge** — multi-model cognitive evaluation, Socratic defense, and architectural reasoning on the core reasoning fleet
+- ☁️ **Cloudflare edge layer** — DNS, SSL, edge caching, DDoS protection, and AI Gateway proxy
 - 🗂️ **Project workspaces** with isolated memory, documents, and context vaults
-- 🎨 **Image Studio**, **Assessment Arena**, and **Slate** workstations
+- 🎨 **Image Studio** and **Slate** workstations
 - 💻 **Syntax-highlighted code blocks** across 20+ languages with one-click copy
 - 🔔 **Founder inbox** for release notes and broadcasts (pin / read / dismiss)
 - 🌌 **120 FPS canvas particle engine** using offscreen sprite blitting
@@ -108,87 +115,118 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 
 ## 🏗️ Architecture
 
+Ubair OS separates workloads by purpose instead of pushing everything through one model: a **chat failover mesh** for conversation, a **dedicated search engine** (Cerebras), a **dedicated vision engine** (Gemini), a **vector memory layer** (Supabase), and a **Cloudflare edge layer** in front of everything.
+
 ### System Overview
 
 ```mermaid
 flowchart TD
-    A["🖥️ Client Browser<br/>Next.js 16 + Tailwind<br/>Offscreen Canvas Engine"] -->|"OAuth + Session Tokens"| B["⚡ FastAPI Async Gateway<br/>SSE Streaming Pipelines"]
-    B --> C{"🔀 Multi-Model Failover Fleet"}
-    C -->|"Tier 1"| D["Groq<br/>Ultra-low latency LPU streaming"]
-    C -->|"Tier 2"| E["Cerebras<br/>Extreme throughput reasoning"]
-    C -->|"Tier 3"| F["Mistral AI<br/>High-parameter architectural logic"]
-    C -->|"Tier 4"| G["OpenRouter Mesh<br/>Dynamic multi-model routing"]
-    C -->|"Tier 5"| H["Google Gemini<br/>Multimodal vision & context fallback"]
-    C -->|"Edge Layer"| I["☁️ Cloudflare<br/>Edge AI workers & resilience proxy"]
-    B --> J[("🗄️ Supabase<br/>PostgreSQL + pgvector<br/>Row Level Security")]
-    K["⏰ Cron Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
+    A["🖥️ Client Browser<br/>Next.js 16 + Tailwind<br/>Offscreen Canvas Engine"] --> CF
+
+    subgraph EDGE["☁️ Cloudflare Edge Layer"]
+        CF["DNS · SSL · Edge Caching<br/>DDoS Protection · AI Gateway Proxy"]
+    end
+
+    CF --> B["⚡ FastAPI Async Gateway (Render)<br/>SSE Streaming · OAuth Session Tokens"]
+    K["⏰ Cron-job.org Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
+
+    subgraph CHAT["💬 Chat Failover Mesh (4 Tiers)"]
+        T1["Tier 1 · Groq<br/>Ultra-low latency LPU streaming"]
+        T2["Tier 2 · Mistral AI<br/>Architectural reasoning & code"]
+        T3["Tier 3 · OpenRouter<br/>Universal open-source failover"]
+        T4["Tier 4 · Google Gemini<br/>Long-context safety net"]
+        T1 -->|"429 / 503"| T2
+        T2 -->|"429 / 503"| T3
+        T3 -->|"unavailable"| T4
+    end
+
+    subgraph SEARCH["🔎 Web Search Pipeline"]
+        S1["Cerebras<br/>Query expansion & synthesis<br/>wafer-scale inference"]
+    end
+
+    subgraph VISION["👁️ Multimodal Vision"]
+        V1["Google Gemini<br/>Attachments · Screenshots<br/>Document parsing"]
+    end
+
+    subgraph DATA["🗄️ Persistence & Memory"]
+        D1[("Supabase<br/>PostgreSQL + pgvector RAG<br/>Row Level Security")]
+    end
+
+    B --> T1
+    B --> S1
+    B --> V1
+    B --> D1
+    V1 -.->|"document RAG parsing"| D1
 ```
 
-### Failover Flow
+### Chat Failover Flow
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant G as FastAPI Gateway
     participant P1 as Groq (Tier 1)
-    participant P2 as Cerebras (Tier 2)
-    participant P3 as Mistral AI (Tier 3)
-    participant P4 as OpenRouter (Tier 4)
-    participant P5 as Gemini (Tier 5)
-    participant CF as Cloudflare Edge
+    participant P2 as Mistral AI (Tier 2)
+    participant P3 as OpenRouter (Tier 3)
+    participant P4 as Gemini (Tier 4)
 
     U->>G: Send message (SSE stream opens)
     G->>P1: Stream completion request
     P1--xG: 429 Rate Limited
     G->>P2: Retry with same context
-    P2--xG: 503 Timeout
+    P2--xG: 429 / 503
     G->>P3: Retry with same context
-    P3--xG: 429 Rate Limited
-    G->>P4: Retry via dynamic routing
-    P4--xG: Upstream Unavailable
-    G->>P5: Retry with same context
-    P5--xG: 503 Timeout
-    G->>CF: Route through edge AI worker
-    CF-->>G: Token stream
+    P3--xG: Upstream Unavailable
+    G->>P4: Retry with same context
+    P4-->>G: Token stream (Resolved)
     G-->>U: Continuous SSE stream (no reconnect)
-```
 
-> The diagram shows the full worst-case path. In normal operation the gateway stops at the first tier that responds.
+    Note over G,P4: Worst-case path. Normally the gateway stops at the first tier that responds.
+    Note over G,P4: Cerebras (search) and Gemini Vision run as dedicated pipelines. Cloudflare is the edge layer, not a retry target.
+```
 
 ### ASCII Overview
 
 ```text
-                       +-----------------------------------------------+
-                       |            CLIENT BROWSER (Vercel)            |
-                       |   Next.js 16 (App Router) + Tailwind CSS      |
-                       |   60-120 FPS Offscreen Canvas Particle Mesh   |
-                       +-----------------------+-----------------------+
-                                               |
-                             OAuth Handshake & Session Tokens
-                                               |
-                                               v
-                       +-----------------------------------------------+
-                       |          FASTAPI ASYNC GATEWAY (Render)       |
-                       |    Event Stream Transports · SSE Pipelines    |
-                       +-----------------------+-----------------------+
-                                               |
-              +--------------------------------+--------------------------------+
-              |                                                                 |
-              v                                                                 v
-+--------------------------------------------+    +------------------------------------+
-|        MULTI-MODEL FAILOVER FLEET          |    |        PERSISTENCE & MEMORY        |
-|  • Tier 1: Groq (LPU Streaming)            |    |  • PostgreSQL Vector RAG Engine    |
-|  • Tier 2: Cerebras (Throughput)           |    |  • Supabase Row Level Security     |
-|  • Tier 3: Mistral AI (Arch. Logic)        |    |  • Ephemeral Client Storage Bridges|
-|  • Tier 4: OpenRouter (Mesh Routing)       |    +------------------------------------+
-|  • Tier 5: Gemini (Vision & Context)       |
-|  • Edge  : Cloudflare (Edge AI Proxy)      |
-+--------------------------------------------+
-              ^
-              | (Keep-Alive Autonomous Pingers Every 300s)
-+-------------+----------------------+
-|    CRON-JOB ORCHESTRATION LAYER    |
-+------------------------------------+
+                      +----------------------------------------------+
+                      |      CLIENT BROWSER (Vercel)                 |
+                      |  Next.js 16 + Tailwind CSS                   |
+                      |  60-120 FPS Offscreen Canvas Engine          |
+                      +----------------------------------------------+
+                                              |
+                                              v
+                      +----------------------------------------------+
+                      |        CLOUDFLARE EDGE LAYER                 |
+                      |  DNS · SSL · Edge Caching · DDoS Protection  |
+                      |  AI Gateway Proxy                            |
+                      +----------------------------------------------+
+                                              |
+                                              v
+                      +----------------------------------------------+
+                      |     FASTAPI ASYNC GATEWAY (Render)           |
+                      |  SSE Pipelines · OAuth Session Tokens        |
+                      |  Keep-alive: Cron-job.org ping every 300s    |
+                      +----------------------------------------------+
+                                              |
+                     +------------------------+----------------------+
+                     |                                               |
+                     v                                               v
++------------------------------------------+    +------------------------------------------+
+|    CHAT FAILOVER MESH (4 TIERS)          |    |   SPECIALIZED COMPUTE                    |
+|  Tier 1: Groq (LPU Streaming)            |    |  Search : Cerebras (Query Expansion      |
+|  Tier 2: Mistral AI (Reasoning & Code)   |    |           & Web Search Synthesis)        |
+|  Tier 3: OpenRouter (Open-Source Mesh)   |    |  Vision : Gemini (Attachments,           |
+|  Tier 4: Gemini (Long-Context Net)       |    |           Screenshots, Doc Parsing)      |
++------------------------------------------+    +------------------------------------------+
+                     |                                               |
+                     +------------------------+----------------------+
+                                              |
+                                              v
+                      +----------------------------------------------+
+                      |        PERSISTENCE & MEMORY                  |
+                      |  Supabase PostgreSQL + pgvector RAG          |
+                      |  Row Level Security                          |
+                      +----------------------------------------------+
 ```
 
 ---
@@ -203,17 +241,25 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 ### 2. Provider rate limits killing conversations
 **Problem:** A single LLM provider returning `429` or `503` would end the user's stream.
-**Solution:** A self-healing router walks a five-tier fleet — Groq, Cerebras, Mistral AI, OpenRouter, and Gemini — with a Cloudflare edge layer as the final safety net. Each hop preserves the conversation tree, RAG context, and execution state, so the SSE stream continues uninterrupted.
+**Solution:** A self-healing router walks a four-tier chat mesh — Groq, Mistral AI, OpenRouter, and Gemini. Each hop preserves the conversation tree, RAG context, and execution state, so the SSE stream continues uninterrupted.
 
-### 3. Particle rendering performance
+### 3. One model can't be best at everything
+**Problem:** Chat, web search synthesis, and vision have very different latency and capability needs. Forcing them through one model made all three worse.
+**Solution:** Workloads are split into dedicated pipelines: the chat mesh for conversation, Cerebras for search synthesis and query expansion, and Gemini for multimodal vision. Each runs on the engine best suited to it.
+
+### 4. Edge protection without burning backend capacity
+**Problem:** A free-tier backend is easy to overwhelm and exposes its origin directly.
+**Solution:** Cloudflare sits in front of the stack, handling DNS, SSL, edge caching, DDoS protection, and AI Gateway proxying before requests reach the FastAPI gateway.
+
+### 5. Particle rendering performance
 **Problem:** Computing radial gradients per particle per frame throttles the CPU, especially on mobile.
 **Solution:** Particles are pre-rendered once into offscreen sprites and blitted each frame with 3D perspective transforms (`pitch`, `yaw`, `rotation`) — heavy math moves out of the hot loop.
 
-### 4. Hydration mismatches
+### 6. Hydration mismatches
 **Problem:** Time-based greetings render differently on server and client, causing React hydration errors.
 **Solution:** Greetings and tenure milestones are computed client-side after hydration, which also removes the need for extra database roundtrips or permission prompts.
 
-### 5. Mobile gesture-bar collisions
+### 7. Mobile gesture-bar collisions
 **Problem:** Input controls overlapped system gesture areas on phones.
 **Solution:** A dedicated safe-area padded input dock and compacting header layout.
 
@@ -223,9 +269,9 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 | Workstation | What it does |
 | --- | --- |
-| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code, search navigation, and audio synthesis triggers |
+| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code, web search synthesis, search navigation, and audio synthesis triggers |
 | **Workspace Canvas** | Project isolation with dedicated vector memory, custom documents, and persistent context vaults |
-| **Assessment Arena** | Interactive assessment workstation, switchable instantly from the dashboard |
+| **Assessment Arena & Forge** | Multi-model cognitive evaluation, Socratic defense, and architectural reasoning powered by the core reasoning fleet |
 | **Image Studio** | Image generation and editing workstation |
 | **Slate** | Lightweight scratch workspace for notes and ideas |
 | **Founder Inbox** | Release notes, direct broadcasts, and milestones with local pin / read / dismiss controls |
@@ -241,9 +287,11 @@ This section documents the real problems hit while building Ubair OS and how eac
 | **API Gateway** | Python 3.11, FastAPI, Uvicorn, AsyncIO | Async streaming and multipart form handling |
 | **Auth** | NextAuth.js, Google OAuth 2.0 | Isolated user sessions, zero password footprint |
 | **Vector DB** | Supabase, PostgreSQL, pgvector | Document embeddings, user tiers, feedback storage |
-| **Inference Mesh** | Groq, Cerebras, Mistral AI, OpenRouter, Google Gemini | Five-tier failover reasoning fleet: low-latency streaming, high-throughput reasoning, architectural logic, dynamic routing, and multimodal fallback |
-| **Edge Infrastructure** | Cloudflare (Edge AI Workers) | Edge AI workers and resilience proxy as the final fallback layer |
-| **Infrastructure** | Vercel, Render, Cron-job.org | 24/7 deployment with keep-alive orchestration |
+| **Chat Inference Mesh** | Groq (Chat LPU), Mistral AI (Reasoning), OpenRouter (Mesh), Google Gemini (Context Fallback) | Four-tier failover mesh for primary chat |
+| **Search Compute** | Cerebras | Web search synthesis and query expansion |
+| **Multimodal Vision** | Google Gemini | Attachment analysis, screenshots, and document RAG parsing |
+| **Edge & Proxy** | Cloudflare (Edge Gateway & Proxy) | DNS, SSL, edge caching, DDoS protection, AI Gateway proxy |
+| **Hosting & Orchestration** | Vercel (Edge UI), Render (FastAPI Gateway), Cron-job.org (Keep-alive mesh) | 24/7 deployment with keep-alive orchestration |
 
 ---
 
@@ -272,7 +320,8 @@ ubair-os/
 - **Node.js** v18.18 or higher
 - **Python** v3.10 or higher
 - **Git**
-- A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini, plus Cloudflare credentials for the edge layer
+- A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini
+- *(Optional for local dev)* Cloudflare credentials if you proxy through Cloudflare AI Gateway
 
 ### 1. Clone the repository
 
@@ -333,13 +382,13 @@ Open **http://localhost:3000** — you're in.
 | --- | --- |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (**never expose to the client**) |
-| `GROQ_API_KEY` | Tier 1 inference provider (ultra-low latency LPU streaming) |
-| `CEREBRAS_API_KEY` | Tier 2 inference provider (extreme throughput reasoning) |
-| `MISTRAL_API_KEY` | Tier 3 inference provider (high-parameter architectural logic) |
-| `OPENROUTER_API_KEY` | Tier 4 inference provider (dynamic multi-model routing) |
-| `GEMINI_API_KEY` | Tier 5 provider (multimodal vision & context fallback) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID for the edge AI layer |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for edge AI workers and the resilience proxy |
+| `GROQ_API_KEY` | Chat Tier 1 — ultra-low latency LPU streaming |
+| `MISTRAL_API_KEY` | Chat Tier 2 — architectural reasoning and code generation |
+| `OPENROUTER_API_KEY` | Chat Tier 3 — universal open-source failover mesh |
+| `GEMINI_API_KEY` | Chat Tier 4 fallback, plus the dedicated multimodal vision engine |
+| `CEREBRAS_API_KEY` | Dedicated engine for web search synthesis and query expansion |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID for the edge / AI Gateway layer |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for the edge / AI Gateway layer |
 
 > 💡 Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
 
@@ -351,13 +400,14 @@ Open **http://localhost:3000** — you're in.
 | --- | --- | --- |
 | Frontend | **Vercel** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
 | Backend | **Render** | Web service running `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Edge Layer | **Cloudflare** | Edge AI workers and resilience proxy used as the final fallback tier |
+| Edge Layer | **Cloudflare** | DNS, SSL, edge caching, DDoS protection, and AI Gateway proxy |
 | Keep-alive | **Cron-job.org** | Ping the gateway every 300 seconds to avoid cold starts |
 
 ---
 
 ## 🛡️ Security & Privacy
 
+- **Edge protection:** Cloudflare provides SSL, DDoS protection, and edge caching in front of the stack.
 - **Session isolation:** Workspaces, conversations, and uploaded documents are bound to authenticated Google OAuth identities.
 - **Row Level Security:** Supabase RLS policies restrict data access per user.
 - **No public model training:** User code, documents, and prompts are not sold or submitted to public training datasets.
@@ -368,7 +418,9 @@ Open **http://localhost:3000** — you're in.
 
 ## 🗺️ Roadmap
 
-- [x] Multi-model failover fleet (Groq → Cerebras → Mistral AI → OpenRouter → Gemini → Cloudflare edge)
+- [x] Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini)
+- [x] Cerebras-powered web search synthesis & query expansion
+- [x] Gemini multimodal vision pipeline
 - [x] Vector RAG memory with per-project isolation
 - [x] Offscreen canvas particle engine (60–120 FPS)
 - [x] Mobile-optimized input dock & gesture safety
