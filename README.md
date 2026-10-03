@@ -13,6 +13,7 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-Async_Gateway-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
   [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-Styling-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![Live App](https://img.shields.io/badge/🚀_Live_App-Experience_Now-cyan?style=for-the-badge&logo=vercel&logoColor=white)](https://ubair-os.vercel.app)
   [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
 
   <p align="center">
@@ -20,13 +21,13 @@
   </p>
 
   <p align="center">
-    <a href="https://ubair-os.vercel.app"><strong>🚀 Launch Production Workspace →</strong></a>
+    <a href="https://ubair-os.vercel.app"><strong>✨ Experience Live App Now →</strong></a>
     &nbsp;•&nbsp;
-    <a href="#-architecture"><strong>🏗️ Architecture</strong></a>
+    <a href="#architecture"><strong>🏗️ Architecture</strong></a>
     &nbsp;•&nbsp;
-    <a href="#-local-development-setup"><strong>⚙️ Run Locally</strong></a>
+    <a href="#local-development-setup"><strong>⚙️ Run Locally</strong></a>
     &nbsp;•&nbsp;
-    <a href="#-engineering-challenges--solutions"><strong>🧠 Engineering Decisions</strong></a>
+    <a href="#engineering-challenges-solutions"><strong>🧠 Engineering Decisions</strong></a>
   </p>
 
 </div>
