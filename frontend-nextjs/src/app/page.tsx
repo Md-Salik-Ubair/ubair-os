@@ -1335,15 +1335,17 @@ export default function WorkspacePage() {
       </div>
 
       {/* 1. TOP HEADER (Unified Navigation Suite) */}
-      <header className="w-full h-14 sm:h-16 shrink-0 backdrop-blur-xl bg-black/40 sticky top-0 flex items-center justify-between px-2.5 sm:px-6 z-40 select-none border-b border-white/[0.04]">
-        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0">
+      <header className="w-full h-14 sm:h-16 shrink-0 backdrop-blur-xl bg-black/40 sticky top-0 flex items-center justify-between px-3 sm:px-6 z-40 select-none border-b border-white/[0.04]">
+        
+        {/* Left Identity: Drawer + Logo + Workspace */}
+        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 shrink">
           <button 
             type="button"
             onClick={() => setIsDrawerOpen(true)}
             className="p-1.5 text-neutral-400 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04] cursor-pointer shrink-0"
             title="Open Workspaces"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
               <line x1="4" y1="12" x2="20" y2="12" />
               <line x1="4" y1="6" x2="20" y2="6" />
               <line x1="4" y1="18" x2="14" y2="18" />
@@ -1365,147 +1367,146 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          <div className="hidden sm:block h-3.5 w-[1px] bg-white/[0.12] mx-1 shrink-0" />
+          <div className="hidden sm:block h-3.5 w-[1px] bg-white/[0.12] mx-0.5 shrink-0" />
           
-          <div className="flex items-center gap-1 font-sans shrink min-w-0">
+          <button
+            type="button"
+            onClick={() => {
+              if (isFounderReviewsOpen) closeFounderReviews();
+              openWorkstation('chat');
+            }}
+            className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 text-[12px] font-medium cursor-pointer active:scale-95 shrink min-w-0 ${
+              isFounderReviewsOpen
+                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shadow-sm'
+                : isChatActive
+                ? 'bg-white/[0.08] text-white shadow-sm'
+                : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+            title={isFounderReviewsOpen ? "Founder Intelligence Deck Active" : "Active Chat Workspace"}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shrink-0 ${
+              isFounderReviewsOpen
+                ? 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.9)] animate-pulse'
+                : isWaitingForNetwork || isStreaming
+                ? 'bg-cyan-400 animate-ping'
+                : activeWorkspace
+                ? 'bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)]'
+                : isChatActive
+                ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]'
+                : 'bg-neutral-600'
+            }`} />
+            <span className="truncate max-w-[95px] sm:max-w-[140px] lg:max-w-none">
+              {isFounderReviewsOpen
+                ? 'Reviews'
+                : isWaitingForNetwork
+                ? 'Thinking...'
+                : isStreaming
+                ? 'Generating...'
+                : activeWorkspace
+                ? activeWorkspace.name
+                : messages.length > 0
+                ? 'Quick Chat'
+                : 'Chat'}
+            </span>
+          </button>
+
+          {/* Desktop Workstation Tabs */}
+          <div className="hidden md:flex items-center gap-1">
             <button
               type="button"
-              onClick={() => {
-                if (isFounderReviewsOpen) closeFounderReviews();
-                openWorkstation('chat');
-              }}
-              className={`h-7 px-2 sm:px-2.5 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 text-[12px] font-medium cursor-pointer active:scale-95 shrink-0 ${
-                isFounderReviewsOpen
-                  ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shadow-sm'
-                  : isChatActive
+              onClick={() => openWorkstation('studio')}
+              className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
+                showImageStudio
                   ? 'bg-white/[0.08] text-white shadow-sm'
                   : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
               }`}
-              title={isFounderReviewsOpen ? "Founder Intelligence Deck Active" : "Active Chat Workspace"}
+              title="Open Image Studio"
             >
-              <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shrink-0 ${
-                isFounderReviewsOpen
-                  ? 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.9)] animate-pulse'
-                  : isWaitingForNetwork || isStreaming
-                  ? 'bg-cyan-400 animate-ping'
-                  : activeWorkspace
-                  ? 'bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)]'
-                  : isChatActive
-                  ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]'
-                  : 'bg-neutral-600'
-              }`} />
-              <span className="truncate max-w-[70px] sm:max-w-[130px] lg:max-w-none">
-                {isFounderReviewsOpen
-                  ? 'Reviews'
-                  : isWaitingForNetwork
-                  ? 'Thinking...'
-                  : isStreaming
-                  ? 'Generating...'
-                  : activeWorkspace
-                  ? activeWorkspace.name
-                  : messages.length > 0
-                  ? 'Quick Chat'
-                  : 'Chat'}
-              </span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <span>Studio</span>
             </button>
 
-            <div className="hidden md:flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => openWorkstation('studio')}
-                className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
-                  showImageStudio
-                    ? 'bg-white/[0.08] text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Open Image Studio"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <span>Studio</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => openWorkstation('arena')}
+              className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
+                showAssessmentArena
+                  ? 'bg-white/[0.08] text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+              title="Open Assessment Arena"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span>Arena</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => openWorkstation('arena')}
-                className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
-                  showAssessmentArena
-                    ? 'bg-white/[0.08] text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Open Assessment Arena"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                <span>Arena</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openWorkstation(isSlateOpen ? 'chat' : 'slate')}
-                className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
-                  isSlateOpen
-                    ? 'bg-white/[0.08] text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Open Ubair Slate (Local Scratchpad & Bridge)"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <line x1="8" y1="9" x2="16" y2="9" />
-                  <line x1="8" y1="13" x2="14" y2="13" />
-                  <line x1="8" y1="17" x2="11" y2="17" />
-                </svg>
-                <span>Slate</span>
-              </button>
-            </div>
-
-            {hasMessages && isChatActive && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSearchOpen(!isSearchOpen);
-                    if (isSearchOpen) setChatSearchQuery('');
-                  }}
-                  className={`h-7 w-7 sm:w-auto px-0 sm:px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
-                    isSearchOpen || chatSearchQuery 
-                      ? 'bg-white/10 text-white border border-white/20 shadow-sm' 
-                      : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
-                  }`}
-                  title="Search conversation"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  <span className="hidden sm:inline">Search</span>
-                </button>
-
-                <div className="hidden sm:block h-3 w-[1px] bg-white/10 mx-0.5 shrink-0" />
-
-                <button
-                  type="button"
-                  onClick={handlePurgeMemory}
-                  className="h-7 w-7 sm:w-auto px-0 sm:px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
-                  title="Clear conversation"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                  <span className="hidden sm:inline">Reset</span>
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => openWorkstation(isSlateOpen ? 'chat' : 'slate')}
+              className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium cursor-pointer active:scale-95 group shrink-0 ${
+                isSlateOpen
+                  ? 'bg-white/[0.08] text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+              title="Open Ubair Slate"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="8" y1="9" x2="16" y2="9" />
+                <line x1="8" y1="13" x2="14" y2="13" />
+                <line x1="8" y1="17" x2="11" y2="17" />
+              </svg>
+              <span>Slate</span>
+            </button>
           </div>
         </div>
 
-        {/* Right Utility Cluster */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right Action & Utility Suite: [Search] [Reset] [Bell] [Avatar] */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {hasMessages && isChatActive && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSearchOpen(!isSearchOpen);
+                  if (isSearchOpen) setChatSearchQuery('');
+                }}
+                className={`h-7 px-2 sm:px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
+                  isSearchOpen || chatSearchQuery 
+                    ? 'bg-white/10 text-white border border-white/20 shadow-sm' 
+                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+                title="Search conversation"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span className="hidden sm:inline">Search</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePurgeMemory}
+                className="h-7 px-2 sm:px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
+                title="Clear conversation"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+
+              <div className="h-3 w-[1px] bg-white/10 mx-0.5 shrink-0" />
+            </>
+          )}
+
           {currentUserEmail && (
             <NotificationInbox userEmail={currentUserEmail} apiBase={API_BASE} />
           )}
@@ -1793,7 +1794,7 @@ export default function WorkspacePage() {
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto w-full px-3 sm:px-6 pt-5 sm:pt-6 pb-[130px] sm:pb-[160px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [scrollbar-width:thin]">
+            <div className="flex-1 overflow-y-auto w-full px-3 sm:px-6 pt-5 sm:pt-6 pb-[185px] sm:pb-[170px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [scrollbar-width:thin]">
               <div className="max-w-3xl w-full mx-auto space-y-6 sm:space-y-8">
                 {displayMessages.map((msg) => {
                   const isHighlighted = targetSearchTurn !== null && msg.turnNumber === targetSearchTurn;

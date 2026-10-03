@@ -621,19 +621,19 @@ export default function ChatInput({
         />
 
         {/* Action Controls: Forge Mode Pill + Dynamic Action (Mic/Send) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 z-10 shrink-0">
+        <div className="flex items-center gap-2 mb-0.5 sm:mb-1 z-10 shrink-0 pl-1">
           
-          {/* Forge Mode Switcher Pill (Compact icon on mobile, full pill on desktop) */}
+          {/* Forge Mode Switcher Pill */}
           <button
             type="button"
             onClick={handleToggleForge}
             disabled={disabled}
-            className={`px-2.5 py-1 rounded-xl text-[11.5px] font-medium tracking-wide flex items-center gap-1.5 transition-all duration-200 shrink-0 select-none cursor-pointer ${
+            className={`h-8 px-2 sm:px-2.5 rounded-xl text-[11.5px] font-medium tracking-wide flex items-center justify-center gap-1.5 transition-all duration-200 shrink-0 select-none cursor-pointer active:scale-95 ${
               !isForgeAvailable
                 ? 'bg-white/[0.02] text-neutral-600 border border-white/[0.05]'
                 : isForgeMode
-                ? 'bg-amber-500/10 text-amber-300 border border-amber-400/30 shadow-[0_0_14px_rgba(245,158,11,0.15)] font-semibold'
-                : 'bg-white/[0.03] text-neutral-400 border border-white/[0.08] hover:text-white hover:border-white/20'
+                ? 'bg-amber-500/15 text-amber-300 border border-amber-400/35 shadow-[0_0_14px_rgba(245,158,11,0.2)] font-semibold'
+                : 'bg-white/[0.04] text-neutral-400 border border-white/[0.08] hover:text-white hover:border-white/20'
             }`}
             title={
               !isForgeAvailable
@@ -662,14 +662,14 @@ export default function ChatInput({
             >
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            <span className="hidden sm:inline">Forge</span>
+            <span className="hidden sm:inline font-sans">Forge</span>
           </button>
 
           {/* Dynamic Unified Action: Mic when Empty, Send Arrow when Active */}
           {isSendActive ? (
             <button
               type="submit"
-              className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:bg-neutral-200 active:scale-95 transition-all duration-150 shrink-0 animate-in fade-in zoom-in-75 duration-150"
+              className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center shadow-md hover:bg-neutral-200 active:scale-95 transition-all duration-150 shrink-0 animate-in fade-in zoom-in-75 duration-150 cursor-pointer"
               title="Send (Enter)"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -682,7 +682,7 @@ export default function ChatInput({
               type="button"
               onClick={toggleVoiceDictation}
               disabled={disabled}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 ${
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer active:scale-95 ${
                 isDictating
                   ? 'bg-cyan-400 text-black shadow-[0_0_12px_rgba(6,182,212,0.6)] animate-pulse'
                   : 'text-neutral-400 hover:text-white hover:bg-white/10'
