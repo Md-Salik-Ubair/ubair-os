@@ -13,15 +13,14 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-Async_Gateway-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
   [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-Styling-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-  [![Cloudflare](https://img.shields.io/badge/Cloudflare-Edge_Layer-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://www.cloudflare.com/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
 
   <p align="center">
-    <b>Ubair OS</b> is a multi-modal AI workspace that combines a four-tier chat failover mesh, Cerebras-powered web search synthesis, Gemini multimodal vision, and vector-grounded memory (RAG) — all running behind a Cloudflare edge layer on a resilient, zero-cost cloud mesh.
+    <b>Ubair OS</b> is a multi-modal AI workspace that combines a four-tier chat failover mesh, Cerebras-powered web search synthesis, Gemini multimodal vision, and vector-grounded memory (RAG) — all served from the Vercel Edge Network on a resilient, zero-cost cloud mesh.
   </p>
 
   <p align="center">
-    <a href="https://ubair-os.vercel.app"><strong>🚀 Live Demo</strong></a>
+    <a href="https://ubair-os.vercel.app"><strong>🚀 Launch Production Workspace →</strong></a>
     &nbsp;•&nbsp;
     <a href="#-architecture"><strong>🏗️ Architecture</strong></a>
     &nbsp;•&nbsp;
@@ -65,7 +64,7 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 | --- | --- |
 | One provider outage = dead chat | Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini) that preserves context mid-stream |
 | Slow, shallow web-grounded answers | Dedicated Cerebras engine for web search synthesis and query expansion |
-| Text-only assistants | Gemini multimodal vision for file attachments, screenshots, and document RAG parsing |
+| Text-only assistants | Gemini multimodal vision for file attachments, screenshots, and document RAG indexing |
 | Context lost between sessions | Per-project vector memory using Supabase + pgvector |
 | Free-tier cold starts (~50s) | Keep-alive cron mesh keeps the gateway warm |
 | Heavy, janky animations | Offscreen-canvas sprite rendering for smooth 60–120 FPS |
@@ -98,10 +97,10 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 - 🤖 **Multi-model chat** with real-time token streaming over SSE
 - 🔁 **Four-tier chat failover mesh** — Groq, Mistral AI, OpenRouter, and Gemini — switching automatically on `429` / `503` without breaking the stream
 - 🔎 **Web Search Synthesis & Query Expansion** powered by Cerebras wafer-scale inference (1,800+ tokens/sec) for fast web retrieval
-- 👁️ **Multimodal Vision** on Google Gemini: file attachment analysis, screenshot understanding, and document RAG parsing
+- 👁️ **Multimodal Vision** on Google Gemini: file attachment analysis, screenshot understanding, and document RAG indexing
 - 🧠 **Vector RAG memory** — upload documents, chat with them, isolated per project
 - ⚔️ **Assessment Arena & Forge** — multi-model cognitive evaluation, Socratic defense, and architectural reasoning on the core reasoning fleet
-- ☁️ **Cloudflare edge layer** — DNS, SSL, edge caching, DDoS protection, and AI Gateway proxy
+- 🌐 **Vercel Edge Network** — global CDN serving the Next.js 16 frontend
 - 🗂️ **Project workspaces** with isolated memory, documents, and context vaults
 - 🎨 **Image Studio** and **Slate** workstations
 - 💻 **Syntax-highlighted code blocks** across 20+ languages with one-click copy
@@ -113,21 +112,21 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 
 ---
 
-## 🏗️ Architecture
+## 🧱 Architecture
 
-Ubair OS separates workloads by purpose instead of pushing everything through one model: a **chat failover mesh** for conversation, a **dedicated search engine** (Cerebras), a **dedicated vision engine** (Gemini), a **vector memory layer** (Supabase), and a **Cloudflare edge layer** in front of everything.
+Ubair OS separates workloads by purpose instead of pushing everything through one model: a **chat failover mesh** for conversation, a **dedicated search engine** (Cerebras), a **dedicated vision engine** (Gemini), a **vector memory layer** (Supabase), and the **Vercel Edge Network** serving the frontend ahead of the FastAPI gateway.
 
 ### System Overview
 
 ```mermaid
 flowchart TD
-    A["🖥️ Client Browser<br/>Next.js 16 + Tailwind<br/>Offscreen Canvas Engine"] --> CF
+    A["🖥️ Client Browser<br/>Offscreen Canvas Engine"] --> VE
 
-    subgraph EDGE["☁️ Cloudflare Edge Layer"]
-        CF["DNS · SSL · Edge Caching<br/>DDoS Protection · AI Gateway Proxy"]
+    subgraph EDGE["🌐 Vercel Edge Network"]
+        VE["Next.js 16 (App Router)<br/>Global CDN Delivery"]
     end
 
-    CF --> B["⚡ FastAPI Async Gateway (Render)<br/>SSE Streaming · OAuth Session Tokens"]
+    VE --> B["⚡ FastAPI Async Gateway (Render)<br/>SSE Streaming · OAuth Session Tokens"]
     K["⏰ Cron-job.org Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
 
     subgraph CHAT["💬 Chat Failover Mesh (4 Tiers)"]
@@ -145,7 +144,7 @@ flowchart TD
     end
 
     subgraph VISION["👁️ Multimodal Vision"]
-        V1["Google Gemini<br/>Attachments · Screenshots<br/>Document parsing"]
+        V1["Google Gemini<br/>Attachments · Screenshots<br/>Document RAG indexing"]
     end
 
     subgraph DATA["🗄️ Persistence & Memory"]
@@ -156,7 +155,7 @@ flowchart TD
     B --> S1
     B --> V1
     B --> D1
-    V1 -.->|"document RAG parsing"| D1
+    V1 -.->|"document RAG indexing"| D1
 ```
 
 ### Chat Failover Flow
@@ -182,23 +181,22 @@ sequenceDiagram
     G-->>U: Continuous SSE stream (no reconnect)
 
     Note over G,P4: Worst-case path. Normally the gateway stops at the first tier that responds.
-    Note over G,P4: Cerebras (search) and Gemini Vision run as dedicated pipelines. Cloudflare is the edge layer, not a retry target.
+    Note over G,P4: Cerebras (search) and Gemini Vision are isolated dedicated pipelines, not chat retry targets.
 ```
 
 ### ASCII Overview
 
 ```text
                       +----------------------------------------------+
-                      |      CLIENT BROWSER (Vercel)                 |
-                      |  Next.js 16 + Tailwind CSS                   |
+                      |      CLIENT BROWSER                          |
                       |  60-120 FPS Offscreen Canvas Engine          |
                       +----------------------------------------------+
                                               |
                                               v
                       +----------------------------------------------+
-                      |        CLOUDFLARE EDGE LAYER                 |
-                      |  DNS · SSL · Edge Caching · DDoS Protection  |
-                      |  AI Gateway Proxy                            |
+                      |      VERCEL EDGE NETWORK                     |
+                      |  Next.js 16 (App Router)                     |
+                      |  Global CDN Delivery                         |
                       +----------------------------------------------+
                                               |
                                               v
@@ -212,11 +210,11 @@ sequenceDiagram
                      |                                               |
                      v                                               v
 +------------------------------------------+    +------------------------------------------+
-|    CHAT FAILOVER MESH (4 TIERS)          |    |   SPECIALIZED COMPUTE                    |
+|    CHAT FAILOVER MESH (4 TIERS)          |    |   DEDICATED PIPELINES (ISOLATED)         |
 |  Tier 1: Groq (LPU Streaming)            |    |  Search : Cerebras (Query Expansion      |
-|  Tier 2: Mistral AI (Reasoning & Code)   |    |           & Web Search Synthesis)        |
-|  Tier 3: OpenRouter (Open-Source Mesh)   |    |  Vision : Gemini (Attachments,           |
-|  Tier 4: Gemini (Long-Context Net)       |    |           Screenshots, Doc Parsing)      |
+|  Tier 2: Mistral AI (Logic & Code)       |    |           & Web Search Synthesis)        |
+|  Tier 3: OpenRouter (Open-Source)        |    |  Vision : Gemini (Attachments,           |
+|  Tier 4: Gemini (Long-Context Net)       |    |           Screenshots, Doc RAG Index)    |
 +------------------------------------------+    +------------------------------------------+
                      |                                               |
                      +------------------------+----------------------+
@@ -247,9 +245,9 @@ This section documents the real problems hit while building Ubair OS and how eac
 **Problem:** Chat, web search synthesis, and vision have very different latency and capability needs. Forcing them through one model made all three worse.
 **Solution:** Workloads are split into dedicated pipelines: the chat mesh for conversation, Cerebras for search synthesis and query expansion, and Gemini for multimodal vision. Each runs on the engine best suited to it.
 
-### 4. Edge protection without burning backend capacity
-**Problem:** A free-tier backend is easy to overwhelm and exposes its origin directly.
-**Solution:** Cloudflare sits in front of the stack, handling DNS, SSL, edge caching, DDoS protection, and AI Gateway proxying before requests reach the FastAPI gateway.
+### 4. Keeping the free-tier backend focused on API work
+**Problem:** A free-tier backend has limited capacity, and serving UI assets from it would waste that capacity.
+**Solution:** The Next.js 16 frontend is served from the Vercel Edge Network (global CDN), so the Render-hosted FastAPI gateway only handles API, streaming, and inference orchestration traffic.
 
 ### 5. Particle rendering performance
 **Problem:** Computing radial gradients per particle per frame throttles the CPU, especially on mobile.
@@ -265,7 +263,7 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 ---
 
-## 🛠️ Flagship Workstations
+## 🧰 Flagship Workstations
 
 | Workstation | What it does |
 | --- | --- |
@@ -289,8 +287,8 @@ This section documents the real problems hit while building Ubair OS and how eac
 | **Vector DB** | Supabase, PostgreSQL, pgvector | Document embeddings, user tiers, feedback storage |
 | **Chat Inference Mesh** | Groq (Chat LPU), Mistral AI (Reasoning), OpenRouter (Mesh), Google Gemini (Context Fallback) | Four-tier failover mesh for primary chat |
 | **Search Compute** | Cerebras | Web search synthesis and query expansion |
-| **Multimodal Vision** | Google Gemini | Attachment analysis, screenshots, and document RAG parsing |
-| **Edge & Proxy** | Cloudflare (Edge Gateway & Proxy) | DNS, SSL, edge caching, DDoS protection, AI Gateway proxy |
+| **Multimodal Vision** | Google Gemini | Attachment analysis, screenshots, and document RAG indexing |
+| **Edge Network** | Vercel Edge Network (Global CDN) | Global delivery for the Next.js 16 frontend |
 | **Hosting & Orchestration** | Vercel (Edge UI), Render (FastAPI Gateway), Cron-job.org (Keep-alive mesh) | 24/7 deployment with keep-alive orchestration |
 
 ---
@@ -321,7 +319,6 @@ ubair-os/
 - **Python** v3.10 or higher
 - **Git**
 - A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini
-- *(Optional for local dev)* Cloudflare credentials if you proxy through Cloudflare AI Gateway
 
 ### 1. Clone the repository
 
@@ -387,27 +384,24 @@ Open **http://localhost:3000** — you're in.
 | `OPENROUTER_API_KEY` | Chat Tier 3 — universal open-source failover mesh |
 | `GEMINI_API_KEY` | Chat Tier 4 fallback, plus the dedicated multimodal vision engine |
 | `CEREBRAS_API_KEY` | Dedicated engine for web search synthesis and query expansion |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID for the edge / AI Gateway layer |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token for the edge / AI Gateway layer |
 
 > 💡 Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
 
 ---
 
-## ☁️ Deployment
+## 🌍 Deployment
 
 | Component | Platform | Notes |
 | --- | --- | --- |
-| Frontend | **Vercel** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
-| Backend | **Render** | Web service running `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Edge Layer | **Cloudflare** | DNS, SSL, edge caching, DDoS protection, and AI Gateway proxy |
+| Frontend | **Vercel Edge** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
+| Backend | **Render Web Service** | Web service running `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | Keep-alive | **Cron-job.org** | Ping the gateway every 300 seconds to avoid cold starts |
 
 ---
 
-## 🛡️ Security & Privacy
+## 🔒 Security & Privacy
 
-- **Edge protection:** Cloudflare provides SSL, DDoS protection, and edge caching in front of the stack.
+- **Transport security:** The frontend is served over HTTPS from the Vercel Edge Network.
 - **Session isolation:** Workspaces, conversations, and uploaded documents are bound to authenticated Google OAuth identities.
 - **Row Level Security:** Supabase RLS policies restrict data access per user.
 - **No public model training:** User code, documents, and prompts are not sold or submitted to public training datasets.
@@ -416,7 +410,7 @@ Open **http://localhost:3000** — you're in.
 
 ---
 
-## 🗺️ Roadmap
+## 🧭 Roadmap
 
 - [x] Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini)
 - [x] Cerebras-powered web search synthesis & query expansion
