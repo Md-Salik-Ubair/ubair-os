@@ -1335,8 +1335,8 @@ export default function WorkspacePage() {
       </div>
 
       {/* 1. TOP HEADER (Unified Navigation Suite) */}
-      <header className="w-full h-14 sm:h-16 shrink-0 backdrop-blur-xl bg-black/40 sticky top-0 flex items-center justify-between px-3 sm:px-6 z-40 select-none border-b border-white/[0.04]">
-        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+      <header className="w-full h-14 sm:h-16 shrink-0 backdrop-blur-xl bg-black/40 sticky top-0 flex items-center justify-between px-2.5 sm:px-6 z-40 select-none border-b border-white/[0.04]">
+        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0">
           <button 
             type="button"
             onClick={() => setIsDrawerOpen(true)}
@@ -1357,10 +1357,15 @@ export default function WorkspacePage() {
               handleSelectWorkspace(null);
             }}
           >
-            <BrandLogo size="md" showWordmark={true} />
+            <div className="hidden sm:block">
+              <BrandLogo size="md" showWordmark={true} />
+            </div>
+            <div className="sm:hidden">
+              <BrandLogo size="md" showWordmark={false} />
+            </div>
           </div>
 
-          <div className="h-3.5 w-[1px] bg-white/[0.12] mx-1 shrink-0" />
+          <div className="hidden sm:block h-3.5 w-[1px] bg-white/[0.12] mx-1 shrink-0" />
           
           <div className="flex items-center gap-1 font-sans shrink min-w-0">
             <button
@@ -1369,7 +1374,7 @@ export default function WorkspacePage() {
                 if (isFounderReviewsOpen) closeFounderReviews();
                 openWorkstation('chat');
               }}
-              className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-2 text-[12px] font-medium cursor-pointer active:scale-95 shrink-0 ${
+              className={`h-7 px-2 sm:px-2.5 rounded-lg transition-all flex items-center gap-1.5 sm:gap-2 text-[12px] font-medium cursor-pointer active:scale-95 shrink-0 ${
                 isFounderReviewsOpen
                   ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shadow-sm'
                   : isChatActive
@@ -1389,7 +1394,7 @@ export default function WorkspacePage() {
                   ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]'
                   : 'bg-neutral-600'
               }`} />
-              <span className="truncate max-w-[85px] sm:max-w-[130px] lg:max-w-none">
+              <span className="truncate max-w-[70px] sm:max-w-[130px] lg:max-w-none">
                 {isFounderReviewsOpen
                   ? 'Reviews'
                   : isWaitingForNetwork
@@ -1460,14 +1465,14 @@ export default function WorkspacePage() {
             </div>
 
             {hasMessages && isChatActive && (
-              <div className="hidden sm:flex items-center gap-1 shrink-0">
+              <>
                 <button
                   type="button"
                   onClick={() => {
                     setIsSearchOpen(!isSearchOpen);
                     if (isSearchOpen) setChatSearchQuery('');
                   }}
-                  className={`h-7 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
+                  className={`h-7 w-7 sm:w-auto px-0 sm:px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0 ${
                     isSearchOpen || chatSearchQuery 
                       ? 'bg-white/10 text-white border border-white/20 shadow-sm' 
                       : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'
@@ -1478,23 +1483,23 @@ export default function WorkspacePage() {
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
-                  <span>Search</span>
+                  <span className="hidden sm:inline">Search</span>
                 </button>
 
-                <div className="h-3 w-[1px] bg-white/10 mx-0.5 shrink-0" />
+                <div className="hidden sm:block h-3 w-[1px] bg-white/10 mx-0.5 shrink-0" />
 
                 <button
                   type="button"
                   onClick={handlePurgeMemory}
-                  className="h-7 px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
+                  className="h-7 w-7 sm:w-auto px-0 sm:px-2.5 rounded-lg hover:bg-rose-500/10 text-neutral-500 hover:text-rose-300 transition-all flex items-center justify-center gap-1.5 text-[12px] font-medium active:scale-95 cursor-pointer shrink-0"
                   title="Clear conversation"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                     <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
-                  <span>Reset</span>
+                  <span className="hidden sm:inline">Reset</span>
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
