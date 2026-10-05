@@ -87,7 +87,6 @@ async def chat_stream_endpoint(
 ):
     clean_prompt = message.strip()
     clean_email = user_email.strip().lower()
-    # Sirf background utility formatters ko stateless rakhenge, Quick Chat (temp) me poori memory chalegi
     is_stateless = (session_id in ["slate_formatter", "headless_eval", "ping"])
     is_forge_mode = engine_mode.lower() in ["forge", "deep_logic"]
 
@@ -101,7 +100,6 @@ async def chat_stream_endpoint(
             user_tier = await main.get_user_tier(target_identity)
             allowed, current_count, max_limit, reset_str = main.check_and_increment_quota(target_identity, user_tier, "forge")
             if not allowed:
-                # User ko block nahi karenge — seedha fast engine par auto-divert
                 is_forge_mode = False
                 downgraded_notice = (
                     f"> ⚡ **Forge 120B Quota Paused:** 3-hour window limit ({max_limit}/{max_limit}) reached. "
@@ -110,9 +108,10 @@ async def chat_stream_endpoint(
         except Exception:
             pass
 
-    # 1. Multimodal Parsing with Cross-Provider Normalization
+    # 1. Multimodal & Multi-Format Parsing with Strict Binary Protection
     raw_images_for_mesh: List[Dict[str, str]] = []
     text_attachments: List[str] = []
+    MAX_FILE_BYTES = 15 * 1024 * 1024  # 15MB safe boundary per attachment
 
     for f in files:
         content_type = f.content_type or ""
@@ -122,24 +121,52 @@ async def chat_stream_endpoint(
             if not file_bytes:
                 continue
 
+            # File Size Safety Guard
+            if len(file_bytes) > MAX_FILE_BYTES:
+                size_mb = round(len(file_bytes) / (1024 * 1024), 1)
+                text_attachments.append(
+                    f"--- File Notice: {filename} ---\n"
+                    f"[System Notice: File size ({size_mb} MB) exceeds the 15MB limit. Please upload a smaller or compressed version.]\n"
+                )
+                continue
+
+            # Visual Frames & Images
             if content_type.startswith("image/"):
                 import base64
                 b64_str = base64.b64encode(file_bytes).decode("utf-8")
                 raw_images_for_mesh.append({"mime_type": content_type, "base64": b64_str})
-            elif content_type == "application/pdf":
+
+            # Documents: PDF Parsing with Scanned Document Detection
+            elif content_type == "application/pdf" or filename.lower().endswith(".pdf"):
                 try:
                     import io
                     from pypdf import PdfReader
                     reader = PdfReader(io.BytesIO(file_bytes))
-                    extracted_text = "\n".join([page.extract_text() or "" for page in reader.pages[:15]])
-                    if extracted_text.strip():
-                        text_attachments.append(f"--- Document: {filename} ---\n{extracted_text[:9000]}\n")
-                except Exception:
-                    decoded = file_bytes.decode("utf-8", errors="ignore")
-                    text_attachments.append(f"--- Document: {filename} ---\n{decoded[:4000]}\n")
+                    extracted_pages = []
+                    for p_num, page in enumerate(reader.pages[:20], start=1):
+                        txt = (page.extract_text() or "").strip()
+                        if txt:
+                            extracted_pages.append(f"[Page {p_num}]: {txt}")
+
+                    full_pdf_text = "\n".join(extracted_pages).strip()
+                    if full_pdf_text:
+                        text_attachments.append(f"--- Document: {filename} ---\n{full_pdf_text[:12000]}\n")
+                    else:
+                        text_attachments.append(
+                            f"--- Document: {filename} (Scanned / Image-Based PDF) ---\n"
+                            f"[System Notice: This PDF appears to be a scanned image without selectable text. "
+                            f"Inform the user warmly that direct text could not be extracted, and suggest uploading screenshots or images of the key pages if visual analysis is needed.]\n"
+                        )
+                except Exception as pe:
+                    text_attachments.append(
+                        f"--- Document: {filename} ---\n"
+                        f"[System Notice: PDF parsing encountered an unreadable or encrypted format: {str(pe)[:80]}]\n"
+                    )
+
+            # Tabular Data: CSV & TSV Profiling
             elif filename.lower().endswith((".csv", ".tsv")) or content_type in ("text/csv", "text/tab-separated-values"):
                 try:
-                    decoded = file_bytes.decode("utf-8", errors="ignore")
+                    decoded = file_bytes.decode("utf-8", errors="replace")
                     delimiter = "\t" if filename.lower().endswith(".tsv") else ","
                     if AnalystProfiler:
                         profile = AnalystProfiler.profile_csv_content(decoded, delimiter=delimiter)
@@ -148,12 +175,30 @@ async def chat_stream_endpoint(
                     else:
                         text_attachments.append(f"--- File: {filename} ---\n{decoded[:8000]}\n")
                 except Exception:
-                    decoded = file_bytes.decode("utf-8", errors="ignore")
+                    decoded = file_bytes.decode("utf-8", errors="replace")
                     text_attachments.append(f"--- File: {filename} ---\n{decoded[:8000]}\n")
+
+            # Code, Markdown, Configuration & Text Assets
+            elif (
+                content_type.startswith("text/")
+                or filename.lower().endswith((
+                    ".txt", ".md", ".json", ".py", ".js", ".ts", ".tsx", ".jsx", 
+                    ".html", ".css", ".sql", ".sh", ".yaml", ".yml", ".xml", ".env", 
+                    ".log", ".rs", ".go", ".java", ".cpp", ".c", ".toml"
+                ))
+            ):
+                try:
+                    decoded = file_bytes.decode("utf-8", errors="replace")
+                    text_attachments.append(f"--- File: {filename} ---\n{decoded[:10000]}\n")
+                except Exception:
+                    pass
+
+            # General Safe Text Fallback
             else:
                 try:
-                    decoded = file_bytes.decode("utf-8", errors="ignore")
-                    text_attachments.append(f"--- File: {filename} ---\n{decoded[:8000]}\n")
+                    decoded = file_bytes.decode("utf-8", errors="replace")
+                    if "\x00" not in decoded[:500]:
+                        text_attachments.append(f"--- File: {filename} ---\n{decoded[:6000]}\n")
                 except Exception:
                     pass
         except Exception:
@@ -163,7 +208,7 @@ async def chat_stream_endpoint(
     if not clean_prompt and (raw_images_for_mesh or text_attachments):
         clean_prompt = "Please analyze and summarize the attached file(s) or visual frame in detail."
 
-    # 2. State & Memory Retrieval (Quick Chat aur Workspace dono ke liye active)
+    # 2. State & Memory Retrieval
     history_messages: List[Dict[str, str]] = []
     history_context_str = ""
     user_identity = clean_email or user_id or f"guest_{session_id}@ubair.os"
@@ -173,11 +218,11 @@ async def chat_stream_endpoint(
                 call_res = cache_memory.get_recent_messages(user_identity, mode, session_id)
                 history_messages = (await call_res) if asyncio.iscoroutine(call_res) else (call_res or [])
             elif hasattr(cache_memory, "get_recent_history"):
-                call_res = cache_memory.get_recent_history(session_id, limit=6)
+                call_res = cache_memory.get_recent_history(session_id, limit=20)
                 history_messages = (await call_res) if asyncio.iscoroutine(call_res) else (call_res or [])
             
             if history_messages:
-                history_context_str = "\n".join([f"{m.get('role', 'user')}: {str(m.get('content', ''))[:160]}" for m in history_messages[-6:]])
+                history_context_str = "\n".join([f"{m.get('role', 'user')}: {str(m.get('content', ''))[:160]}" for m in history_messages[-20:]])
         except Exception:
             history_messages = []
 
@@ -192,14 +237,14 @@ async def chat_stream_endpoint(
         except Exception:
             effective_prompt = clean_prompt
 
-    # 3.5. Forge is now directly user-governed via the input toggle
     forge_card_payload = None 
 
-    # 4. Intent Routing & Targeted Ephemeral RAG (With Instant URL Interceptor)
+    # 4. Intent Routing & Targeted Ephemeral RAG
     search_grounding = ""
     detected_intent = "chat"
+    current_utc_year = datetime.now(timezone.utc).year
+
     if clean_prompt:
-        # Direct URL Link Detection (GitHub, News, Docs, Websites)
         url_match = re.search(r'https?://[^\s]+', clean_prompt)
         
         if url_match:
@@ -214,7 +259,7 @@ async def chat_stream_endpoint(
             detected_intent = analysis.get("intent", "chat")
             target_search_query = analysis.get("optimized_query") or effective_prompt
         else:
-            time_triggers = ["news", "weather", "today", "aaj", "current", "score", "price", "latest", "2026"]
+            time_triggers = ["news", "weather", "today", "aaj", "current", "score", "price", "latest", str(current_utc_year)]
             detected_intent = "web_search" if any(t in clean_prompt.lower() for t in time_triggers) else "chat"
             target_search_query = effective_prompt
 
@@ -222,15 +267,15 @@ async def chat_stream_endpoint(
             try:
                 search_grounding = await asyncio.wait_for(
                     research_engine.fast_web_search_pipeline(target_search_query),
-                    timeout=7.0
+                    timeout=5.0
                 )
             except Exception:
                 search_grounding = ""
 
-    # 5. Context Synthesizer (Single Source of Truth - No Duplicate History Ingestion)
+    # 5. Context Synthesizer
     prompt_sections = []
     if search_grounding:
-        prompt_sections.append(f"[LIVE GROUNDING (2026)]:\n{search_grounding}\n")
+        prompt_sections.append(f"[LIVE GROUNDING ({current_utc_year})]:\n{search_grounding}\n")
     if text_attachments:
         prompt_sections.append(f"[ATTACHED CONTEXT]:\n{''.join(text_attachments)}\n")
     
@@ -253,8 +298,11 @@ async def chat_stream_endpoint(
 
         now = datetime.now(timezone.utc)
         current_date_str = now.strftime("%A, %B %d, %Y")
+        current_year = now.year
 
-        # Extract Clean First Name
+        # Real-time Mathematical Founder Age Calculation (DOB: March 18, 2005)
+        founder_age = current_year - 2005 - ((now.month, now.day) < (3, 18))
+
         name_parts = (user_full_name or "User").strip().split()
         first_token = name_parts[0] if name_parts else "User"
         if len(name_parts) > 1 and first_token.lower() in ["md", "md.", "mohd", "mohammad"]:
@@ -271,40 +319,63 @@ async def chat_stream_endpoint(
             "- NEVER translate or switch languages unless explicitly told to do so."
         )
 
+        founder_dossier = (
+            f"FOUNDER & CHIEF ARCHITECT IDENTITY:\n"
+            f"- Creator: Md Salik Ubair\n"
+            f"- Background: Computer Science & Engineering (B.Tech in AI/ML)\n"
+            f"- Date of Birth: March 18, 2005\n"
+            f"- Exact Current Age: {founder_age} years old (calculated dynamically in real-time)\n"
+            f"- Official Direct WhatsApp: [Chat on WhatsApp](https://wa.me/qr/XLPRU45KSUMBP1)\n"
+            f"- Founder Portfolio: [Md Salik Ubair Portfolio](https://portfolio-salik-live.vercel.app/)\n"
+            f"- Official Email: mdsalikubair@gmail.com\n"
+            f"- Founder Instagram: [@ubair.os](https://instagram.com/ubair.os)\n"
+            f"- SYSTEM PROTOCOL: Whenever a user asks who created Ubair OS, who the founder is, his age, background, or contact links, "
+            f"share these verified facts warmly and accurately with clean Markdown links. Never guess or hallucinate his age or details.\n\n"
+        )
+
         ubair_ecosystem_manifest = (
             f"UBAIR OS NATIVE IDENTITY & CAPABILITY MATRIX:\n"
             f"You are the central intelligence of 'Ubair OS', an autonomous, high-velocity AI operating system founded by Md Salik Ubair.\n"
             f"Active Collaborator: {caller_name}.\n"
             "You possess complete, accurate self-awareness of the active Ubair OS workstation layout:\n"
-            "1. Ubair Studio: Built-in flagship AI Image Studio (accessible from top header navigation and left drawer). "
+            "1. Quick Chat (Default Mode): High-velocity ephemeral workspace with a sliding 20-message in-session memory window. "
+            "It operates as a session-only scratchpad — zero persistent database logging, automatically deleted when the session ends or resets.\n"
+            "2. Ubair Studio: Built-in flagship AI Image Studio (accessible from top header navigation and left drawer). "
             "It generates cinematic, 3D, and photorealistic master visual frames without watermarks. "
             "STRICT RULE: If a user asks to generate/create/draw an image, NEVER say 'I cannot generate images' or 'I am a text-only AI'. "
             "Instead, clarify that direct pixel rendering happens in 'Ubair Studio' (top nav/drawer), "
             "and immediately provide an ultra-detailed, cinematic prompt ready for them to paste into Studio.\n"
-            "2. Ubair Arena: Interactive cognitive workstation for Socratic technical defense, AI concept scoring, and deep challenge sets.\n"
-            "3. Ubair Slate: Ephemeral, zero-trace local scratchpad and fast memory bridge.\n"
-            "4. Ubair Forge (Deep Logic Mode): 120B reasoning engine for heavyweight architecture, multi-step code execution, and algorithmic proofs (toggled via the 'Forge' button next to chat input).\n"
-            "5. Persistent Workspaces & Vector Vaults: Multi-project directories with long-term memory, supporting PDF vector search and CSV data science profiling.\n"
-            "6. Direct Utilities: Support Desk (mdsalikubair@gmail.com), Official Instagram (@ubair.os), and Share Feedback modal.\n\n"
+            "3. Ubair Arena: Interactive cognitive workstation for Socratic technical defense, AI concept scoring, and deep challenge sets.\n"
+            "4. Ubair Slate: Ephemeral, zero-trace local scratchpad and fast memory bridge.\n"
+            "5. Ubair Forge (Deep Logic Mode): 120B reasoning engine for heavyweight architecture, multi-step code execution, and algorithmic proofs (toggled via the 'Forge' button next to chat input).\n"
+            "6. Persistent Workspaces & Vector Vaults: Multi-project directories with long-term memory, supporting up to 20 recent messages sliding memory window, PDF vector search and CSV data science profiling.\n"
+            "7. Direct Utilities: Support Desk (mdsalikubair@gmail.com), Official Instagram (@ubair.os), WhatsApp ([Chat on WhatsApp](https://wa.me/qr/XLPRU45KSUMBP1)), Founder Portfolio ([Md Salik Ubair Portfolio](https://portfolio-salik-live.vercel.app/)), and Share Feedback modal.\n\n"
             "LIVE WEB & URL INGESTION WEAPONS:\n"
             "- You have direct live internet connectivity via Ubair Ephemeral Research Engine (Tavily + Jina Reader + Deep Scraper).\n"
             "- If live grounding facts are present under [LIVE GROUNDING], treat them as verified ground truth and state facts directly.\n"
             "- When a user shares a URL (GitHub repository, technical docs, blog, or web page), you ingest and analyze its content directly.\n"
-            "- BANNED PHRASES: NEVER say 'As an AI I do not have access to real-time information', 'My knowledge cutoff is', or 'I cannot browse the web'. You are an active live engine in 2026.\n"
+            "- BANNED PHRASES: NEVER say 'As an AI I do not have access to real-time information', 'My knowledge cutoff is', or 'I cannot browse the web'. You are an active live engine operating in the current real-world environment.\n"
             "- HYPERLINK FORMATTING MANDATE: When sharing any URL, citation, or source, ALWAYS format it as a valid Markdown link: [Platform or Source Title](https://full-url). NEVER wrap URLs inside code backticks (e.g. `https://...`) and NEVER write raw domain names without https://. Every link must be an active, clickable Markdown hyperlink.\n\n"
-            "COMMUNICATION STYLE & VIBE:\n"
-            "- You are NOT an obsequious, generic corporate chatbot. You speak like an elite technical co-founder and trusted peer.\n"
-            "- Lead with the answer in sentence 1. Avoid patronizing setups like 'Sure! Here is a breakdown' or 'In conclusion'.\n"
-            "- Be candid, grounded, and subtly witty. If an approach is flawed, point it out constructively like an honest partner."
+        )
+
+        communication_vibe = (
+            "COMMUNICATION STYLE & TONE (NATURAL & COMFORTABLE PEER):\n"
+            "- Talk like a brilliant, relaxed technical peer and supportive co-founder — not a stiff corporate robot or strict lecturer.\n"
+            "- Be comfortable, authentic, friendly, and easygoing. Have a warm, grounded energy with a subtle touch of wit.\n"
+            "- Avoid robotic preambles (e.g. 'Sure! Here is a breakdown', 'In conclusion, it is important to note'). Answer directly in sentence 1.\n"
+            "- If the user asks in Hinglish or casual slang, match that vibe effortlessly without being overly formal.\n"
+            "- If an approach is flawed or can be improved, point it out gently, constructively, and comfortably — like a trusted friend in the tech lab.\n"
         )
 
         if is_forge_mode:
             system_instruction = (
                 f"You are Ubair OS Neural Engine in FORGE DEEP LOGIC mode (Founded by Md Salik Ubair).\n"
-                f"TEMPORAL REALITY: Today is {current_date_str}. Current Year: 2026.\n"
+                f"TEMPORAL REALITY: Today is {current_date_str}. Current Year: {current_year}.\n"
+                f"{founder_dossier}\n"
                 f"{ubair_ecosystem_manifest}\n"
+                f"{communication_vibe}\n"
                 f"{language_protocol}\n"
-                "Execute rigorous step-by-step reasoning, mathematical proofs, and production-grade code without lazy placeholders."
+                "Execute rigorous step-by-step reasoning, mathematical proofs, and production-grade code with clarity and warmth."
             )
             groq_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
             gemini_models = ["gemini-3.5-flash-lite", "gemini-2.5-flash"]
@@ -314,10 +385,12 @@ async def chat_stream_endpoint(
         else:
             system_instruction = (
                 f"You are Ubair OS Neural Engine (Founded by Md Salik Ubair).\n"
-                f"TEMPORAL REALITY: Today is {current_date_str}. Current Year: 2026.\n"
+                f"TEMPORAL REALITY: Today is {current_date_str}. Current Year: {current_year}.\n"
+                f"{founder_dossier}\n"
                 f"{ubair_ecosystem_manifest}\n"
+                f"{communication_vibe}\n"
                 f"{language_protocol}\n"
-                "Be direct, insightful, and authentic. Answer immediately in sentence 1 without robotic preamble."
+                "Be authentic, insightful, relaxed, and conversational. Deliver clear, high-value answers without robotic preamble."
             )
             groq_models = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"]
             gemini_models = ["gemini-3.5-flash-lite", "gemini-2.5-flash"]
@@ -338,7 +411,6 @@ async def chat_stream_endpoint(
             # LANE A: MULTIMODAL ROUTE (Vision / Document Analysis)
             # =============================================================
             if has_visuals:
-                # 1. Gemini Vision via Zero-Dependency Pure HTTP SSE Stream
                 if gemini_keys:
                     import random
                     shuffled_gemini = list(gemini_keys)
@@ -390,7 +462,6 @@ async def chat_stream_endpoint(
                                     if has_yielded: return
                                     continue
 
-                # 2. Mistral Pixtral Vision Fallback
                 if mistral_keys and not has_yielded:
                     import random
                     shuffled_mistral = list(mistral_keys)
@@ -459,7 +530,7 @@ async def chat_stream_endpoint(
 
                         groq_messages = [{"role": "system", "content": system_instruction}]
                         if not is_stateless and history_messages:
-                            groq_messages.extend(history_messages[-6:])
+                            groq_messages.extend(history_messages[-20:])
                         groq_messages.append({"role": "user", "content": final_text_payload})
 
                         async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=2.5)) as client:
@@ -503,7 +574,7 @@ async def chat_stream_endpoint(
                                         if has_yielded: return
                                         continue
 
-                    # PROVIDER: GEMINI (Pure HTTP SSE with Bulletproof Multi-Turn Sanitization)
+                    # PROVIDER: GEMINI
                     elif provider == "gemini" and gemini_keys:
                         import random
                         shuffled_gemini = list(gemini_keys)
@@ -512,12 +583,10 @@ async def chat_stream_endpoint(
                         gemini_contents = []
                         if not is_stateless and history_messages:
                             last_role = None
-                            for m in history_messages[-6:]:
+                            for m in history_messages[-20:]:
                                 g_role = "model" if m.get("role") == "assistant" else "user"
-                                # Rule 1: First turn in Gemini contents MUST be user
                                 if not gemini_contents and g_role != "user":
                                     continue
-                                # Rule 2: Strictly alternate roles (no consecutive user-user or model-model)
                                 if g_role == last_role:
                                     continue
                                 gemini_contents.append({
@@ -526,7 +595,6 @@ async def chat_stream_endpoint(
                                 })
                                 last_role = g_role
 
-                            # Rule 3: If last history item is user, drop it so we don't have user -> user
                             if gemini_contents and gemini_contents[-1]["role"] == "user":
                                 gemini_contents.pop()
 
@@ -578,7 +646,7 @@ async def chat_stream_endpoint(
 
                         mistral_messages = [{"role": "system", "content": system_instruction}]
                         if not is_stateless and history_messages:
-                            mistral_messages.extend(history_messages[-6:])
+                            mistral_messages.extend(history_messages[-20:])
                         mistral_messages.append({"role": "user", "content": final_text_payload})
 
                         async with httpx.AsyncClient(timeout=httpx.Timeout(22.0, connect=3.0)) as client:
@@ -620,7 +688,7 @@ async def chat_stream_endpoint(
                                         if has_yielded: return
                                         continue
 
-                    # PROVIDER: OPENROUTER (Verified Fallback)
+                    # PROVIDER: OPENROUTER
                     elif provider == "openrouter" and openrouter_keys:
                         import random
                         shuffled_openrouter = list(openrouter_keys)
@@ -628,7 +696,7 @@ async def chat_stream_endpoint(
 
                         openrouter_messages = [{"role": "system", "content": system_instruction}]
                         if not is_stateless and history_messages:
-                            openrouter_messages.extend(history_messages[-6:])
+                            openrouter_messages.extend(history_messages[-20:])
                         openrouter_messages.append({"role": "user", "content": final_text_payload})
 
                         async with httpx.AsyncClient(timeout=httpx.Timeout(25.0, connect=4.0)) as client:

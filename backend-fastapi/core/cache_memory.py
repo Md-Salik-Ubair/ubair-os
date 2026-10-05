@@ -10,28 +10,33 @@ from pathlib import Path
 
 # Ensure root backend in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from core.config import config
+try:
+    from core.config import config
+except ImportError:
+    config = None
 
 
 class RedisMemoryCluster:
     """
     Unchallengeable Enterprise Memory & Cache Cluster for Ubair OS:
     - Strict Multi-Tenant Isolation (Email & Session Hard-Partitioning)
-    - Dynamic Sliding Window Memory (10 user-assistant turns for Temp, 5 turns for Workspace)
+    - Dynamic Sliding Window Memory (Last 20 messages for both Quick Chat and Workspace)
+    - Ephemeral In-Session Lifecycle: 1-hour rolling idle TTL for Quick Chat (zero 24h lingering)
     - Multi-Node Redis Replication & Failover Pool
     - Loop-Drift Resilient Async Connection Pooling
     - Direct Redis Client Exposure for Supabase Governance Quotas
     - Self-Cleaning In-Memory Failover Cache (Zero RAM Leaks)
-    - Ethical Lifecycle: 24h for Temp Chats, 7 Days for Workspace Buffers
+    - Workspaces: 7 Days rolling buffer with 20-message memory window
     """
     def __init__(self):
-        # Ethical Data Lifecycles (in seconds)
-        self.temp_ttl = 86400           # 24 Hours auto-delete for Quick Chat
-        self.workspace_ttl = 604800     # 7 Days for Workspace Cache before RAG manages context
+        # Ephemeral Session Lifecycles (in seconds)
+        # Quick Chat: 1-Hour idle timeout (current session only, auto-expires when idle or cleared)
+        self.temp_ttl = 3600            
+        self.workspace_ttl = 604800     # 7 Days rolling buffer for Workspace Cache
         
-        # Dynamic Sliding Windows (Number of messages: 20 msgs = 10 complete turns)
+        # Sliding Windows (Exact 20 messages = 10 complete user-assistant turns)
         self.temp_max_turns = 20        
-        self.workspace_max_turns = 10   
+        self.workspace_max_turns = 20   
 
         # In-Memory Failover Cache
         self._local_cache: Dict[str, List[Dict[str, str]]] = {}
@@ -46,6 +51,8 @@ class RedisMemoryCluster:
     @property
     def redis_urls(self) -> List[str]:
         """Dynamically pulls active Redis endpoints from config."""
+        if not config:
+            return []
         raw = getattr(config, "REDIS_URLS", [])
         if isinstance(raw, list):
             return [u.strip().strip('"').strip("'") for u in raw if u and u.strip()]
@@ -118,7 +125,7 @@ class RedisMemoryCluster:
     def _generate_key(self, user_identifier: str, mode: str, session_id: str) -> str:
         """
         Generates clean, sanitized namespace keys:
-        Example: ubair_os:mdsalikubair_gmail_com:workspace:ws_1725100000
+        Example: ubair_os:mdsalikubair_gmail_com:temp:quick_1
         """
         raw_user = str(user_identifier or "").strip().lower()
         clean_user = re.sub(r'[^a-zA-Z0-9_-]', '_', raw_user) if raw_user else "anonymous"
@@ -159,7 +166,7 @@ class RedisMemoryCluster:
     async def add_message(self, user_id: str, mode: str, session_id: str, role: str, content: str) -> bool:
         """
         Appends message atomically across all connected Redis nodes & local memory.
-        Applies dynamic trim so prompt size stays lightweight.
+        Maintains sliding window of exactly 20 messages.
         """
         key = self._generate_key(user_id, mode, session_id)
         msg_payload = json.dumps({"role": role, "content": content})
@@ -190,7 +197,7 @@ class RedisMemoryCluster:
 
     async def get_recent_messages(self, user_id: str, mode: str, session_id: str, limit: Optional[int] = None) -> List[Dict[str, str]]:
         """
-        Retrieves recent turns for LLM prompt context injection.
+        Retrieves recent turns for LLM prompt context injection (default: last 20 messages).
         Tries primary Redis nodes, with seamless local memory fallback.
         """
         key = self._generate_key(user_id, mode, session_id)
@@ -223,7 +230,7 @@ class RedisMemoryCluster:
 
     async def clear_session(self, user_id: str, mode: str, session_id: str) -> bool:
         """
-        Ethically purges session across all Redis nodes and local failover memory simultaneously.
+        Ethically purges session across all Redis nodes and local failover memory immediately.
         """
         key = self._generate_key(user_id, mode, session_id)
         

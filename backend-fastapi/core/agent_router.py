@@ -2,6 +2,7 @@ import json
 import re
 import asyncio
 from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
 import httpx
 import sys
 from pathlib import Path
@@ -120,18 +121,19 @@ class AutonomousAgentRouter:
             formatted = [f"{m.get('role', 'user')}: {str(m.get('content', ''))[:150]}" for m in last_turns]
             recent_context = "\n".join(formatted)
 
+        current_year = datetime.now(timezone.utc).year
         system_instruction = (
-            "You are the Core Routing Engine of Ubair OS. Analyze the User Prompt and Context.\n"
-            "Classify intent into ONE category:\n"
-            "- 'web_search': Current events, real-world developments, factual assertions, prices, geopolitical news, or live updates.\n"
-            "- 'coding': Programming logic, code syntax, bug fixing, scripts, algorithms, or architecture.\n"
-            "- 'deep_reasoning': Math proofs, formal derivations, complex logic puzzles, or physics.\n"
-            "- 'document': Context extraction from massive file content.\n"
-            "- 'chat': General talk, creative work, banter, philosophy, explanations, or greetings.\n\n"
-            "CO-REFERENCE INSTRUCTION:\n"
-            "If user uses pronouns ('wahan', 'usne', 'kya hua uska', 'that match'), resolve it from history into a clean standalone English search query.\n\n"
+            f"You are the Core Routing Engine of Ubair OS. Current Year: {current_year}.\n"
+            "Analyze the User Prompt and Context. Classify intent into ONE category:\n"
+            "- 'web_search': Any question requiring external knowledge, real-world facts, recent events, weather, stock/crypto prices, scores, people, products, tech releases, news, or verification. WHEN IN DOUBT ON FACTUAL TOPICS, PREFER 'web_search'.\n"
+            "- 'coding': Code snippets, debugging, programming questions, architecture design, scripts, or SQL.\n"
+            "- 'deep_reasoning': Complex mathematical proofs, logic derivations, algorithms, or formal puzzles.\n"
+            "- 'document': Direct queries regarding massive uploaded text blocks or documents.\n"
+            "- 'chat': Casual talk, banter, greetings, opinions, creative writing, or system discussion.\n\n"
+            "CO-REFERENCE & SEARCH QUERY OPTIMIZATION:\n"
+            "If user asks in Hindi/Hinglish (e.g. 'aaj ka score kya hai', 'usne kya bola'), translate it into an accurate, clean, standalone English search query for 'optimized_query'.\n\n"
             "OUTPUT STRICT JSON ONLY (NO EXPLANATION, NO CODEBLOCKS):\n"
-            '{"intent": "web_search"|"coding"|"deep_reasoning"|"document"|"chat", "optimized_query": "clean standalone English search query or null", "reasoning": "short justification"}'
+            '{"intent": "web_search"|"coding"|"deep_reasoning"|"document"|"chat", "optimized_query": "clean standalone search query or null", "reasoning": "short justification"}'
         )
 
         user_payload = (
@@ -278,12 +280,14 @@ class AutonomousAgentRouter:
         if any(re.search(p, prompt) for p in math_patterns):
             return {"intent": "deep_reasoning", "optimized_query": "", "reasoning": "Mathematical expression verified"}
 
-        # 3. Interrogative Factual/Event Structure (Real-world grounding without keyword traps)
+        # 3. Interrogative Factual/Event Structure (Dynamic year + bilingual triggers)
+        current_year = datetime.now(timezone.utc).year
         factual_event_structure = [
-            r"(?:kya|kab|kaun|kaise|kitna|kyun)\s+.*(?:\?|$)",
-            r"(?:who|what|when|where|why|how)\s+(?:is|are|was|were|did|happened)\b",
-            r"\b202[4-6]\b",
-            r"\b(?:today|yesterday|current|latest|update|statement|score|price|news|weather)\b"
+            r"(?:kya|kab|kaun|kaise|kitna|kyun|kisko)\s+.*(?:\?|$)",
+            r"(?:who|what|when|where|why|how)\s+(?:is|are|was|were|did|happened|will)\b",
+            rf"\b(?:{current_year - 1}|{current_year}|{current_year + 1})\b",
+            r"\b20\d{2}\b",
+            r"\b(?:today|yesterday|tomorrow|current|latest|update|statement|score|price|rate|news|weather|aaj|kal|khabar|mausam|sach|check|search|dhundo)\b"
         ]
         if any(re.search(p, prompt, re.IGNORECASE) for p in factual_event_structure):
             return {

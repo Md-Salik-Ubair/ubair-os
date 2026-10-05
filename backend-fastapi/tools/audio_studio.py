@@ -53,7 +53,7 @@ def extract_groq_keys() -> List[str]:
 class AudioStudioEngine:
     """
     Enterprise-Grade Multimodal Speech Engine for Ubair OS:
-    - Tier 1: Direct Unified Edge-TTS Stream (Single-pass, zero-stitching, <1.8s)
+    - Tier 1: Direct Unified Edge-TTS Stream (Single-pass, zero-stitching, handles full-length text)
     - Tier 2: Resilient Cross-Dialect Neural Fallback (Aria / Swara)
     - Tier 3: Browser-Emulated Google Translate TTS Fallback
     - Tier 4: Zero-Crash In-Memory Audio Shield (Never returns 500)
@@ -86,7 +86,7 @@ class AudioStudioEngine:
             or (current_loop and self._client_loop != current_loop)
         ):
             self._http_client = httpx.AsyncClient(
-                timeout=httpx.Timeout(14.0, connect=3.5),
+                timeout=httpx.Timeout(20.0, connect=4.0),
                 limits=httpx.Limits(max_keepalive_connections=20, max_connections=40),
                 follow_redirects=True
             )
@@ -141,7 +141,7 @@ class AudioStudioEngine:
         return "en-US-AriaNeural", "en"
 
     def _sanitize_for_speech(self, text: str) -> str:
-        """Strips markdown, diagrams, and code fences into clean natural speech."""
+        """Strips markdown, diagrams, and code fences into clean natural speech without truncating."""
         if not text:
             return ""
 
@@ -180,9 +180,9 @@ class AudioStudioEngine:
         clean = re.sub(r'[-–—]{2,}', ', ', clean)
         clean = re.sub(r'\s+', ' ', clean).strip()
 
-        # Cap audio reading length to maximum 1500 characters to ensure sub-2s generation
-        if len(clean) > 1500:
-            clean = clean[:1500] + "... For the complete details, please refer to the text on your screen."
+        # Generous buffer: Allow up to 8,000 characters (~1,200 words) so responses are read completely
+        if len(clean) > 8000:
+            clean = clean[:8000] + "... For the remaining extended technical details, please refer to the text on your screen."
 
         return clean
 
@@ -299,7 +299,8 @@ class AudioStudioEngine:
             "Accept": "*/*"
         }
 
-        for chunk in chunks[:6]:  # Limit to first 6 chunks for speed
+        # Allow reading up to 25 chunks (~4000 characters)
+        for chunk in chunks[:25]:
             encoded = urllib.parse.quote(chunk)
             url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={safe_lang}&client=tw-ob&q={encoded}"
             try:
@@ -315,7 +316,7 @@ class AudioStudioEngine:
     # ---------------------------------------------------------
     # 3. UNIFIED EDGE-TTS WORKER (SINGLE STREAM PASS)
     # ---------------------------------------------------------
-    async def _stream_edge_tts(self, text: str, voice_name: str, timeout_sec: float = 9.0) -> Optional[bytes]:
+    async def _stream_edge_tts(self, text: str, voice_name: str, timeout_sec: float = 20.0) -> Optional[bytes]:
         if not _edge_tts_available:
             return None
         try:
@@ -349,8 +350,11 @@ class AudioStudioEngine:
         detected_voice, detected_lang = self._detect_segment_voice(clean_text)
         primary_voice = voice or detected_voice
 
+        # Dynamic timeout: scales cleanly with text length so long responses never abort mid-stream
+        computed_timeout = max(18.0, min(50.0, len(clean_text) * 0.008 + 12.0))
+
         # Tier 1: Single-Pass Primary Edge-TTS (Fastest, High-Fidelity)
-        audio_data = await self._stream_edge_tts(clean_text, primary_voice, timeout_sec=8.5)
+        audio_data = await self._stream_edge_tts(clean_text, primary_voice, timeout_sec=computed_timeout)
         if audio_data:
             return {
                 "success": True,
@@ -364,7 +368,7 @@ class AudioStudioEngine:
         fallback_voice = "hi-IN-SwaraNeural" if detected_lang in ["hi", "ur"] else "en-US-AriaNeural"
         if fallback_voice != primary_voice:
             logger.info(f"[Audio Studio] Switching to Tier-2 Failover Voice: {fallback_voice}")
-            audio_data = await self._stream_edge_tts(clean_text, fallback_voice, timeout_sec=6.5)
+            audio_data = await self._stream_edge_tts(clean_text, fallback_voice, timeout_sec=computed_timeout)
             if audio_data:
                 return {
                     "success": True,
@@ -386,10 +390,8 @@ class AudioStudioEngine:
                 "byte_size": len(google_data)
             }
 
-        # Tier 4: Zero-Crash Safety Net (Guarantees HTTP 200 with minimal valid MP3 frame)
-        # Prevents 500 crashes on the frontend when completely offline
+        # Tier 4: Zero-Crash Safety Net
         logger.error("[Audio Studio] All external speech synthesizers offline. Delivering safety audio stream.")
-        # Standard silent MP3 frame (header + empty frame bytes)
         silent_mp3 = b'\xff\xfb\x90d\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' * 30
         return {
             "success": True,
