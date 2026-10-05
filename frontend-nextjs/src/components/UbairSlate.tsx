@@ -233,8 +233,8 @@ export default function UbairSlate({ isOpen, onClose, userEmail = '' }: UbairSla
       }
       const initialNote: SlateNote = {
         id: `note_${Date.now()}`,
-        title: 'Architecture Blueprint',
-        content: '- System: Ubair Slate Native Workspace\n- Protocol: Client-side local encryption with ephemeral transfer bridge\n- Reliability: Low latency auto-save, distraction-free markdown canvas',
+        title: 'Welcome to Ubair Slate ⚡',
+        content: 'Ubair Slate aapka private, distraction-free scratchpad hai jahan aap ideas, code snippets aur quick drafts likh sakte hain.\n\n### 🚀 Quick Guide:\n- **100% Device Private:** Saare notes aapke browser me securely save hote hain, server par store nahi hote.\n- **Real-Time Auto-Save:** Har ek shabd likhte hi automatically save hota hai.\n- **✨ Auto-Structure:** Rough text ya code likhne ke baad neeche "Auto-Structure" dabayein, AI use clean Markdown me convert kar dega.\n- **Device Sync (⇪):** Upar "Sync" button se 4-digit temporary code generate karke dusre phone ya laptop par notes transfer kar sakte hain.\n\n*Naya note shuru karne ke liye left sidebar me "+ New Note" par click karein!*',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -753,17 +753,17 @@ ${noteToProcess.content}`;
                     {note.title || 'Untitled Note'}
                   </span>
 
-                  {/* Three Dots (...) SaaS Context Trigger */}
+                  {/* Three Dots (...) SaaS Context Trigger - Always Visible */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenNoteMenuId(isMenuOpen ? null : note.id);
                     }}
-                    className={`p-1 rounded-md transition-all cursor-pointer ${
+                    className={`p-1.5 rounded-md transition-all cursor-pointer shrink-0 ${
                       isMenuOpen
-                        ? 'opacity-100 bg-white/[0.1] text-white'
-                        : 'opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-white hover:bg-white/[0.05]'
+                        ? 'bg-white/[0.15] text-white shadow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/[0.08] active:scale-95'
                     }`}
                     title="Note Options"
                   >

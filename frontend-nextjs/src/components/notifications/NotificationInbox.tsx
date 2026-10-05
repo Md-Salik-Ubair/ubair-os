@@ -104,6 +104,174 @@ interface NotificationInboxProps {
   apiBase?: string;
 }
 
+// ============================================================================
+// TOUCH-SWIPABLE NOTIFICATION CARD (MOBILE SLIDE-TO-REMOVE + PC DIRECT CROSS)
+// ============================================================================
+interface NotificationCardProps {
+  item: NotificationItem;
+  isRead: boolean;
+  isPinned: boolean;
+  onMarkRead: (item: NotificationItem) => void;
+  onTogglePin: (id: string, e: React.MouseEvent) => void;
+  onDismiss: (id: string, e?: React.MouseEvent) => void;
+}
+
+function NotificationCard({
+  item,
+  isRead,
+  isPinned,
+  onMarkRead,
+  onTogglePin,
+  onDismiss
+}: NotificationCardProps) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+
+  const startXRef = useRef<number>(0);
+  const startYRef = useRef<number>(0);
+  const isHorizontalScrollRef = useRef<boolean | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    isHorizontalScrollRef.current = null;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - startXRef.current;
+    const diffY = currentY - startYRef.current;
+
+    // Detect direction on initial movement
+    if (isHorizontalScrollRef.current === null) {
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        isHorizontalScrollRef.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+    }
+
+    // Only drag horizontally if user isn't scrolling vertically
+    if (isHorizontalScrollRef.current) {
+      const damp = Math.abs(diffX) > 100 ? diffX * 0.75 : diffX;
+      setOffsetX(damp);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false);
+    const threshold = 75; // 75px drag triggers dismissal
+
+    if (Math.abs(offsetX) > threshold) {
+      setIsDismissing(true);
+      // Animate out in the swipe direction
+      setOffsetX(offsetX > 0 ? 380 : -380);
+      setTimeout(() => {
+        onDismiss(item.id);
+      }, 200);
+    } else {
+      // Snap back smoothly
+      setOffsetX(0);
+    }
+    isHorizontalScrollRef.current = null;
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl select-none">
+      {/* Background reveal on swipe (Rose / Trash action) */}
+      <div
+        className={`absolute inset-0 rounded-2xl flex items-center justify-between px-4 transition-colors ${
+          Math.abs(offsetX) > 30 ? 'bg-rose-500/20 border border-rose-500/40' : 'bg-transparent'
+        }`}
+      >
+        <span className={`text-xs font-mono font-medium text-rose-300 transition-opacity ${offsetX > 35 ? 'opacity-100' : 'opacity-0'}`}>
+          ✕ Remove
+        </span>
+        <span className={`text-xs font-mono font-medium text-rose-300 transition-opacity ${offsetX < -35 ? 'opacity-100' : 'opacity-0'}`}>
+          Remove ✕
+        </span>
+      </div>
+
+      {/* Main card body with real-time translation and touch listeners */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => {
+          // Only trigger click mark-read if user was not swiping
+          if (Math.abs(offsetX) < 10) {
+            onMarkRead(item);
+          }
+        }}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease',
+          opacity: isDismissing ? 0 : 1
+        }}
+        className={`group relative p-3 rounded-2xl border transition-colors cursor-pointer flex flex-col gap-1.5 touch-pan-y ${
+          !isRead
+            ? 'bg-[#0f1117] hover:bg-[#14161f] border-white/[0.12] shadow-sm'
+            : 'bg-[#0a0b0e] hover:bg-[#0e0f14] border-white/[0.05] opacity-80 hover:opacity-100'
+        }`}
+      >
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {!isRead && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+            )}
+            <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-wider truncate">
+              {item.category === 'broadcast'
+                ? 'Announcement'
+                : item.category === 'welcome'
+                ? 'Journey Milestone'
+                : item.category === 'system'
+                ? 'Ambient Transmission'
+                : 'Direct Notice'}
+            </span>
+          </div>
+
+          {/* Action triggers: ✕ is ALWAYS clearly visible on touch/mobile, and hover on desktop */}
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            <button
+              type="button"
+              onClick={(e) => onTogglePin(item.id, e)}
+              className={`p-1.5 rounded-md hover:bg-white/[0.08] transition-colors text-[11px] cursor-pointer ${
+                isPinned ? 'text-amber-400' : 'text-neutral-500 hover:text-white'
+              }`}
+              title={isPinned ? 'Unpin' : 'Pin to top'}
+            >
+              📌
+            </button>
+            <button
+              type="button"
+              onClick={(e) => onDismiss(item.id, e)}
+              className="p-1.5 rounded-md text-neutral-400 hover:text-rose-400 active:text-rose-400 hover:bg-white/[0.08] transition-colors text-xs cursor-pointer flex items-center justify-center min-w-[24px] min-h-[24px]"
+              title="Remove notification"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-0.5">
+          <h5 className={`text-xs ${!isRead ? 'text-white font-semibold' : 'text-neutral-200 font-medium'}`}>
+            {item.title}
+          </h5>
+          <p className="text-[11.5px] text-neutral-300 leading-relaxed font-sans whitespace-pre-wrap break-words">
+            {item.message}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-[9.5px] font-mono text-neutral-500 select-none">
+          <span>{item.sender_name || 'Founder (Ubair OS)'}</span>
+          <span>{new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NotificationInbox({
   userEmail,
   apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -311,10 +479,11 @@ export default function NotificationInbox({
     });
   };
 
-  // Dismiss Notification
-  const handleDismissNotification = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // Dismiss Notification (Used by both ✕ click & mobile touch swipe)
+  const handleDismissNotification = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setDismissedIds(prev => {
+      if (prev.includes(id)) return prev;
       const updated = [...prev, id];
       if (typeof window !== 'undefined') {
         localStorage.setItem(`ubair_dismissed_notifs_${cleanEmail}`, JSON.stringify(updated));
@@ -501,6 +670,17 @@ export default function NotificationInbox({
               </div>
             </div>
 
+            {/* Mobile swipe hint */}
+            {activeFeed.length > 0 && (
+              <div className="px-4 py-1.5 bg-white/[0.02] border-b border-white/[0.03] flex items-center justify-between text-[10px] font-mono text-neutral-500 select-none">
+                <span className="sm:hidden flex items-center gap-1">
+                  <span>⇄</span> Swipe left/right to remove
+                </span>
+                <span className="hidden sm:inline">Click message to mark read</span>
+                <span>Click ✕ to delete</span>
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-[220px] max-h-[60vh] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [scrollbar-width:thin]">
               {isLoading ? (
                 <div className="h-44 flex flex-col items-center justify-center gap-2 text-center">
@@ -527,58 +707,15 @@ export default function NotificationInbox({
                   const isPinned = pinnedIds.includes(item.id);
 
                   return (
-                    <div
+                    <NotificationCard
                       key={item.id}
-                      onClick={() => handleMarkAsRead(item)}
-                      className={`group relative p-3 rounded-2xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
-                        !isRead
-                          ? 'bg-white/[0.04] hover:bg-white/[0.06] border-white/[0.1] shadow-sm'
-                          : 'bg-white/[0.015] hover:bg-white/[0.035] border-white/[0.04] opacity-80 hover:opacity-100'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-wider">
-                            {item.category === 'broadcast' ? 'Announcement' : item.category === 'welcome' ? 'Journey Milestone' : item.category === 'system' ? 'Ambient Transmission' : 'Direct Notice'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={(e) => handleTogglePin(item.id, e)}
-                            className={`p-1 rounded hover:bg-white/[0.08] transition-colors text-[11px] ${
-                              isPinned ? 'text-amber-400' : 'text-neutral-500 hover:text-white'
-                            }`}
-                            title={isPinned ? 'Unpin' : 'Pin to top'}
-                          >
-                            📌
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDismissNotification(item.id, e)}
-                            className="p-1 rounded text-neutral-500 hover:text-rose-400 hover:bg-white/[0.08] transition-colors text-xs"
-                            title="Dismiss notification"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <h5 className={`text-xs font-medium ${!isRead ? 'text-white font-semibold' : 'text-neutral-200'}`}>
-                          {item.title}
-                        </h5>
-                        <p className="text-[11.5px] text-neutral-300 leading-relaxed font-sans whitespace-pre-wrap break-words">
-                          {item.message}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-white/[0.03] text-[9.5px] font-mono text-neutral-500">
-                        <span>{item.sender_name || 'Founder (Ubair OS)'}</span>
-                        <span>{new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                      </div>
-                    </div>
+                      item={item}
+                      isRead={isRead}
+                      isPinned={isPinned}
+                      onMarkRead={handleMarkAsRead}
+                      onTogglePin={handleTogglePin}
+                      onDismiss={handleDismissNotification}
+                    />
                   );
                 })
               )}

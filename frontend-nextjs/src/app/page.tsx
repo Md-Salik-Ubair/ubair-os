@@ -382,6 +382,10 @@ export default function WorkspacePage() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
+  // Pure In-Memory Transient Session ID: Page refresh hote hi naya ID ban jayega, 
+  // jisse Quick Chat refresh ke baad automatically fresh aur empty milegi.
+  const [quickSessionId] = useState(() => `quick_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isWaitingForNetwork, setIsWaitingForNetwork] = useState(false);
@@ -463,7 +467,7 @@ export default function WorkspacePage() {
   const loadChatHistory = useCallback(async (wsId: string | null) => {
     if (!currentUserEmail) return;
     const mode = wsId ? 'workspace' : 'temp';
-    const sId = wsId || 'quick_1';
+    const sId = wsId || quickSessionId;
 
     try {
       const res = await fetch(`${API_BASE}/api/chat/history?email=${encodeURIComponent(currentUserEmail)}&mode=${mode}&session_id=${sId}`);
@@ -1204,7 +1208,7 @@ export default function WorkspacePage() {
         formData.append('session_id', activeWorkspaceId);
       } else {
         formData.append('mode', 'temp');
-        formData.append('session_id', 'quick_1');
+        formData.append('session_id', quickSessionId);
       }
 
       attachedFiles.forEach((file) => formData.append('files', file));
@@ -1405,7 +1409,7 @@ export default function WorkspacePage() {
                 : activeWorkspace
                 ? activeWorkspace.name
                 : messages.length > 0
-                ? 'Quick Chat'
+                ? 'Temporary Chat'
                 : 'Chat'}
             </span>
           </button>

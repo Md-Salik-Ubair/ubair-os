@@ -32,7 +32,7 @@ class RedisMemoryCluster:
         # Ephemeral Session Lifecycles (in seconds)
         # Quick Chat: 1-Hour idle timeout (current session only, auto-expires when idle or cleared)
         self.temp_ttl = 3600            
-        self.workspace_ttl = 604800     # 7 Days rolling buffer for Workspace Cache
+        self.workspace_ttl = 604800    # 7 Days rolling buffer for Workspace Cache
         
         # Sliding Windows (Exact 20 messages = 10 complete user-assistant turns)
         self.temp_max_turns = 20        
