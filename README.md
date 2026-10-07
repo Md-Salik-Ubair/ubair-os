@@ -108,6 +108,8 @@ Ubair OS answers a different question: *what if an AI workspace were ephemeral b
 - 🔎 **Fast search synthesis** powered by Cerebras
 - 👁️ **Multimodal vision** on Gemini: attachment analysis, screenshot understanding, document indexing
 - 🧠 **Vector RAG** over Supabase PostgreSQL + pgvector, isolated per workspace
+- ⚔️ **Assessment Arena** — multi-model cognitive evaluation and Socratic concept defense fleet
+- 🎨 **Specialized Workstations** — Image Studio master rendering and zero-trace Slate with PIN-based cross-device sync
 - 📄 **Hardened ingestion** — 15MB per-file cap, scanned-PDF (image-only) detection, CSV/TSV profiling and blueprint generation
 - 🌌 **Ambient Cosmic Galaxy** — 60–120 FPS 2D/3D trigonometric projection canvas via offscreen sprite blitting
 - 🧭 **Chat ergonomics** — turn-number jump (`#1`, `#2`, …), in-chat message search, one-click code copy
@@ -309,12 +311,13 @@ sequenceDiagram
 
 | Workstation | What it does |
 | --- | --- |
-| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code with one-click copy, turn-number jump, message search, Web Speech dictation, and real-time TTS |
-| **Workspace Canvas** | Multi-tenant project isolation with vector document vaults and long-term memory |
-| **Forge** | Deep Logic Mode: 120B architectural reasoning on a rolling 3-hour quota |
-| **Image Studio** | Image generation and editing workstation |
-| **Slate** | Lightweight scratch workspace for notes and ideas |
-| **Founder Inbox** | Release notes, broadcasts, and milestones with local pin / read / dismiss controls |
+| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code with one-click copy, turn-number jump, in-chat search, Web Speech dictation, and real-time TTS |
+| **Workspace Canvas** | Multi-tenant project isolation with pgvector document vaults and persistent context memory |
+| **Assessment Arena** | Multi-model cognitive evaluation, Socratic concept defense, and automated capability benchmark scoring |
+| **Forge Studio** | Deep Logic Mode: 120B architectural reasoning engine governed by a dynamic rolling 3-hour quota |
+| **Image Studio** | Multi-frame visual generation, ratio control, and master HD prompt workstation |
+| **Zero-Trace Slate** | Ephemeral scratchpad and local vault with secure PIN-based cross-device sync |
+| **Founder Inbox** | Platform broadcast studio and notification channel with local pin / read / dismiss controls |
 
 ---
 
