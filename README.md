@@ -6,18 +6,19 @@
     UBAIR OS
   </h1>
 
-  ### The Autonomous Neural Workspace for High-Velocity Builders & Thinkers
+  ### Autonomous Multi-Model AI Operating System & Ephemeral Neural Workspace
 
-  [![Next.js 16](https://img.shields.io/badge/Next.js_16-Turbopack-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+  [![Next.js 16](https://img.shields.io/badge/Next.js_16-App_Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
   [![React 19](https://img.shields.io/badge/React_19-TypeScript-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-  [![FastAPI](https://img.shields.io/badge/FastAPI-Async_Gateway-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.11-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+  [![Redis](https://img.shields.io/badge/Redis-Sliding_Window_Cache-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
   [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
   [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-Styling-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
   [![Live App](https://img.shields.io/badge/🚀_Live_App-Experience_Now-cyan?style=for-the-badge&logo=vercel&logoColor=white)](https://ubair-os.vercel.app)
   [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
 
   <p align="center">
-    <b>Ubair OS</b> is a multi-modal AI workspace that combines a four-tier chat failover mesh, Cerebras-powered web search synthesis, Gemini multimodal vision, and vector-grounded memory (RAG) — all served from the Vercel Edge Network on a resilient, zero-cost cloud mesh.
+    <b>Ubair OS</b> is a multi-model AI workspace built around a zero-persistence <b>Temporary Chat</b> default, a Redis-backed 20-message sliding window, multi-tenant <b>Workspaces</b> with pgvector RAG memory, and an on-demand 120B <b>Forge</b> reasoning engine — orchestrated by an async FastAPI gateway across Groq, Gemini, Mistral AI, OpenRouter, and Cerebras.
   </p>
 
   <p align="center">
@@ -39,9 +40,11 @@
 - [Why Ubair OS](#-why-ubair-os)
 - [Demo](#-demo)
 - [Feature Overview](#-feature-overview)
+- [Chat Modes](#-chat-modes)
 - [Architecture](#-architecture)
+- [Multimodal Ingestion & Hardened Boundaries](#-multimodal-ingestion--hardened-boundaries)
 - [Engineering Challenges & Solutions](#-engineering-challenges--solutions)
-- [Workstations](#-flagship-workstations)
+- [Flagship Workstations](#-flagship-workstations)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Local Development Setup](#-local-development-setup)
@@ -57,19 +60,21 @@
 
 ## 💡 Why Ubair OS
 
-Most AI tools are a single chat box tied to a single model. When that model rate-limits, the conversation dies. Memory is shallow, search is slow, and the UI is an afterthought.
+Most AI tools are a single chat box tied to a single model, with persistence you never asked for. When the model rate-limits, the conversation dies. Memory is shallow, uploads are fragile, and the UI is an afterthought.
 
-Ubair OS was built over **12+ months** to answer one question: *what if an AI workspace stayed fast, remembered context, and never went down — even on free-tier infrastructure?*
+Ubair OS answers a different question: *what if an AI workspace were ephemeral by default, persistent only when you choose, and fast regardless of which model is serving you?*
 
 | Problem with typical AI tools | How Ubair OS handles it |
 | --- | --- |
-| One provider outage = dead chat | Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini) that preserves context mid-stream |
-| Slow, shallow web-grounded answers | Dedicated Cerebras engine for web search synthesis and query expansion |
-| Text-only assistants | Gemini multimodal vision for file attachments, screenshots, and document RAG indexing |
-| Context lost between sessions | Per-project vector memory using Supabase + pgvector |
-| Free-tier cold starts (~50s) | Keep-alive cron mesh keeps the gateway warm |
-| Heavy, janky animations | Offscreen-canvas sprite rendering for smooth 60–120 FPS |
-| Intrusive tracking & permissions | Client-side ambient state, no tracking banners |
+| Every conversation is silently logged | **Temporary Chat** is the default: transient in-memory session ID, zero persistent database logging, wiped on page reload |
+| Unbounded context growth | Redis **20-message atomic sliding window** (`RPUSH` + `LTRIM`) keeps context bounded and fast |
+| One provider outage = dead chat | Multi-provider inference fleet with automatic failover that preserves context mid-stream |
+| Shallow reasoning on hard problems | **Forge Deep Logic Mode**: dedicated 120B architectural reasoning engine, on demand, with a rolling 3-hour quota |
+| Slow, shallow web-grounded answers | Cerebras handles fast search synthesis |
+| Text-only assistants | Gemini multimodal vision for attachments, screenshots, and document indexing |
+| Context lost between sessions | **Workspaces** with per-tenant vector document vaults and long-term memory (Supabase + pgvector) |
+| Fragile file handling | 15MB per-file boundary at client **and** server, scanned-PDF detection, graceful fallbacks |
+| Heavy, janky animations | Offscreen sprite blitting for a 60–120 FPS canvas with no WebGL dependency |
 
 ---
 
@@ -95,69 +100,92 @@ Ubair OS was built over **12+ months** to answer one question: *what if an AI wo
 
 ## ✨ Feature Overview
 
-- 🤖 **Multi-model chat** with real-time token streaming over SSE
-- 🔁 **Four-tier chat failover mesh** — Groq, Mistral AI, OpenRouter, and Gemini — switching automatically on `429` / `503` without breaking the stream
-- 🔎 **Web Search Synthesis & Query Expansion** powered by Cerebras wafer-scale inference (1,800+ tokens/sec) for fast web retrieval
-- 👁️ **Multimodal Vision** on Google Gemini: file attachment analysis, screenshot understanding, and document RAG indexing
-- 🧠 **Vector RAG memory** — upload documents, chat with them, isolated per project
-- ⚔️ **Assessment Arena & Forge** — multi-model cognitive evaluation, Socratic defense, and architectural reasoning on the core reasoning fleet
-- 🌐 **Vercel Edge Network** — global CDN serving the Next.js 16 frontend
-- 🗂️ **Project workspaces** with isolated memory, documents, and context vaults
-- 🎨 **Image Studio** and **Slate** workstations
-- 💻 **Syntax-highlighted code blocks** across 20+ languages with one-click copy
+- ⏳ **Temporary Chat (default)** — zero-persistence ephemeral workspace with a transient in-memory session ID
+- 🧮 **Redis sliding-window memory** — 20-message atomic window via `RPUSH` / `LTRIM`, served through pooled connections
+- 🗂️ **Multi-tenant Workspaces** — persistent directories isolated by user email and workspace ID, with vector document vaults and long-term memory
+- ⚒️ **Forge Deep Logic Mode** — on-demand 120B architectural reasoning engine with a dynamic 3-hour rolling quota
+- 🤖 **Multi-model inference fleet** — Groq LPU (120B / 20B), Google Gemini (2.5 / 3.5), Mistral AI, OpenRouter, and Cerebras
+- 🔎 **Fast search synthesis** powered by Cerebras
+- 👁️ **Multimodal vision** on Gemini: attachment analysis, screenshot understanding, document indexing
+- 🧠 **Vector RAG** over Supabase PostgreSQL + pgvector, isolated per workspace
+- 📄 **Hardened ingestion** — 15MB per-file cap, scanned-PDF (image-only) detection, CSV/TSV profiling and blueprint generation
+- 🌌 **Ambient Cosmic Galaxy** — 60–120 FPS 2D/3D trigonometric projection canvas via offscreen sprite blitting
+- 🧭 **Chat ergonomics** — turn-number jump (`#1`, `#2`, …), in-chat message search, one-click code copy
+- 🎙️ **Voice** — Web Speech API dictation and real-time TTS audio generation
 - 🔔 **Founder inbox** for release notes and broadcasts (pin / read / dismiss)
-- 🌌 **120 FPS canvas particle engine** using offscreen sprite blitting
-- 📱 **Mobile-first ergonomics** with safe-area aware input dock
+- 📱 **Mobile-first ergonomics** with a safe-area aware input dock
 - 🔐 **Google OAuth 2.0** sign-in — no passwords stored
-- ⏳ **Ephemeral Quick Chat** with automatic 24-hour client memory purge
+
+---
+
+## 🕹️ Chat Modes
+
+| Mode | Persistence | Memory | Intended use |
+| --- | --- | --- | --- |
+| **Temporary Chat** *(default Quick Mode)* | **None.** Transient in-memory session ID that wipes completely on page reload. Zero persistent database logging. | Redis 20-message sliding window | Quick questions, sensitive prompts, scratch reasoning |
+| **Workspaces** | Persistent, multi-tenant. Directories isolated by **user email + workspace ID**. | Vector document vaults (pgvector) + long-term memory | Ongoing projects, document-grounded chat |
+| **Forge Deep Logic** | Toggled on demand on top of a session | 120B parameter architectural reasoning engine | Deep system design, hard debugging, multi-step logic |
+
+> **Forge quota:** Forge runs under a dynamic **3-hour rolling quota management system**, so heavyweight reasoning capacity stays available across the fleet.
 
 ---
 
 ## 🧱 Architecture
 
-Ubair OS separates workloads by purpose instead of pushing everything through one model: a **chat failover mesh** for conversation, a **dedicated search engine** (Cerebras), a **dedicated vision engine** (Gemini), a **vector memory layer** (Supabase), and the **Vercel Edge Network** serving the frontend ahead of the FastAPI gateway.
+Ubair OS separates workloads by purpose instead of pushing everything through one model: an **inference fleet** for chat and reasoning, a **dedicated search pipeline** (Cerebras), a **dedicated vision pipeline** (Gemini), an **ephemeral cache layer** (Redis) for sliding-window session state, and a **persistence layer** (Supabase + pgvector) that only Workspaces touch.
 
 ### System Overview
 
 ```mermaid
 flowchart TD
-    A["🖥️ Client Browser<br/>Offscreen Canvas Engine"] --> VE
+    A["🖥️ Client Browser<br/>Offscreen Canvas Engine · Web Speech API"] --> VE
 
     subgraph EDGE["🌐 Vercel Edge Network"]
-        VE["Next.js 16 (App Router)<br/>Global CDN Delivery"]
+        VE["Next.js 16 (App Router) · React 19<br/>Global CDN Delivery"]
     end
 
-    VE --> B["⚡ FastAPI Async Gateway (Render)<br/>SSE Streaming · OAuth Session Tokens"]
-    K["⏰ Cron-job.org Keep-Alive<br/>ping every 300s"] -.->|"keeps warm"| B
+    VE --> B["⚡ FastAPI Async Gateway (backend-fastapi/)<br/>Python 3.11 · AsyncIO · Uvicorn<br/>SSE Streaming · OAuth Session Tokens · 15MB Upload Guard"]
 
-    subgraph CHAT["💬 Chat Failover Mesh (4 Tiers)"]
-        T1["Tier 1 · Groq<br/>Ultra-low latency LPU streaming"]
-        T2["Tier 2 · Mistral AI<br/>Architectural reasoning & code"]
-        T3["Tier 3 · OpenRouter<br/>Universal open-source failover"]
-        T4["Tier 4 · Google Gemini<br/>Long-context safety net"]
+    subgraph FLEET["🧠 Inference Fleet"]
+        T1["Groq LPU<br/>120B / 20B low-latency streaming"]
+        T2["Mistral AI<br/>Reasoning & code"]
+        T3["OpenRouter<br/>Open-source failover"]
+        T4["Google Gemini 2.5 / 3.5<br/>Long-context safety net"]
         T1 -->|"429 / 503"| T2
         T2 -->|"429 / 503"| T3
         T3 -->|"unavailable"| T4
     end
 
-    subgraph SEARCH["🔎 Web Search Pipeline"]
-        S1["Cerebras<br/>Query expansion & synthesis<br/>wafer-scale inference"]
+    subgraph FORGE["⚒️ Forge Deep Logic"]
+        F1["120B Architectural Reasoning<br/>3-hour rolling quota"]
+    end
+
+    subgraph SEARCH["🔎 Search Pipeline"]
+        S1["Cerebras<br/>Fast search synthesis"]
     end
 
     subgraph VISION["👁️ Multimodal Vision"]
-        V1["Google Gemini<br/>Attachments · Screenshots<br/>Document RAG indexing"]
+        V1["Google Gemini<br/>Attachments · Screenshots · Documents"]
     end
 
-    subgraph DATA["🗄️ Persistence & Memory"]
-        D1[("Supabase<br/>PostgreSQL + pgvector RAG<br/>Row Level Security")]
+    subgraph CACHE["⚡ Ephemeral State Layer"]
+        R1[("Redis<br/>Connection Pool<br/>20-msg sliding window<br/>RPUSH + LTRIM")]
+    end
+
+    subgraph DATA["🗄️ Persistence & Memory (Workspaces only)"]
+        D1[("Supabase PostgreSQL<br/>pgvector RAG · Row Level Security<br/>Isolated by email + workspace ID")]
     end
 
     B --> T1
+    B --> F1
     B --> S1
     B --> V1
-    B --> D1
-    V1 -.->|"document RAG indexing"| D1
+    B <-->|"every chat mode"| R1
+    B <-->|"Workspaces only"| D1
+    V1 -.->|"document indexing"| D1
 ```
+
+> **Temporary Chat never touches Supabase.** Its only state lives in Redis (bounded to 20 messages) and in a transient client-side session ID that disappears on reload.
 
 ### Chat Failover Flow
 
@@ -165,12 +193,15 @@ flowchart TD
 sequenceDiagram
     participant U as User
     participant G as FastAPI Gateway
+    participant R as Redis
     participant P1 as Groq (Tier 1)
     participant P2 as Mistral AI (Tier 2)
     participant P3 as OpenRouter (Tier 3)
     participant P4 as Gemini (Tier 4)
 
     U->>G: Send message (SSE stream opens)
+    G->>R: RPUSH + LTRIM (20-message window)
+    R-->>G: Windowed context
     G->>P1: Stream completion request
     P1--xG: 429 Rate Limited
     G->>P2: Retry with same context
@@ -182,7 +213,7 @@ sequenceDiagram
     G-->>U: Continuous SSE stream (no reconnect)
 
     Note over G,P4: Worst-case path. Normally the gateway stops at the first tier that responds.
-    Note over G,P4: Cerebras (search) and Gemini Vision are isolated dedicated pipelines, not chat retry targets.
+    Note over G,P4: Cerebras (search), Gemini Vision, and Forge are dedicated pipelines, not chat retry targets.
 ```
 
 ### ASCII Overview
@@ -196,69 +227,79 @@ sequenceDiagram
                                               v
                       +----------------------------------------------+
                       |      VERCEL EDGE NETWORK                     |
-                      |  Next.js 16 (App Router)                     |
-                      |  Global CDN Delivery                         |
+                      |  Next.js 16 (App Router) · React 19          |
                       +----------------------------------------------+
                                               |
                                               v
                       +----------------------------------------------+
-                      |     FASTAPI ASYNC GATEWAY (Render)           |
-                      |  SSE Pipelines · OAuth Session Tokens        |
-                      |  Keep-alive: Cron-job.org ping every 300s    |
+                      |   FASTAPI ASYNC GATEWAY (backend-fastapi/)   |
+                      |  Python 3.11 · AsyncIO · Uvicorn             |
+                      |  SSE Pipelines · 15MB Upload Guard           |
                       +----------------------------------------------+
                                               |
-                     +------------------------+----------------------+
-                     |                                               |
-                     v                                               v
-+------------------------------------------+    +------------------------------------------+
-|    CHAT FAILOVER MESH (4 TIERS)          |    |   DEDICATED PIPELINES (ISOLATED)         |
-|  Tier 1: Groq (LPU Streaming)            |    |  Search : Cerebras (Query Expansion      |
-|  Tier 2: Mistral AI (Logic & Code)       |    |           & Web Search Synthesis)        |
-|  Tier 3: OpenRouter (Open-Source)        |    |  Vision : Gemini (Attachments,           |
-|  Tier 4: Gemini (Long-Context Net)       |    |           Screenshots, Doc RAG Index)    |
-+------------------------------------------+    +------------------------------------------+
-                     |                                               |
-                     +------------------------+----------------------+
+              +-------------------------------+-------------------------------+
+              |                               |                               |
+              v                               v                               v
++---------------------------+   +---------------------------+   +---------------------------+
+|     INFERENCE FLEET       |   |   DEDICATED PIPELINES     |   |   EPHEMERAL STATE LAYER   |
+| Groq LPU (120B/20B)       |   | Search : Cerebras         |   | Redis (pooled)            |
+| Mistral AI                |   | Vision : Gemini           |   | 20-msg sliding window     |
+| OpenRouter                |   | Forge  : 120B reasoning   |   | RPUSH + LTRIM (atomic)    |
+| Gemini 2.5 / 3.5          |   |          (3-hr quota)     |   +---------------------------+
++---------------------------+   +---------------------------+
                                               |
                                               v
                       +----------------------------------------------+
-                      |        PERSISTENCE & MEMORY                  |
+                      |   PERSISTENCE & MEMORY  (Workspaces only)    |
                       |  Supabase PostgreSQL + pgvector RAG          |
-                      |  Row Level Security                          |
+                      |  Isolated by user email + workspace ID       |
                       +----------------------------------------------+
 ```
 
 ---
 
+## 📥 Multimodal Ingestion & Hardened Boundaries
+
+| Boundary | Behavior |
+| --- | --- |
+| **15MB per-file limit** | Enforced at **both** the client and the FastAPI endpoints — the client rejects early, the server never trusts the client |
+| **Scanned-PDF detection** | Image-only PDFs with no extractable text are detected automatically and return a graceful fallback notice instead of an empty or misleading result |
+| **Tabular profiling** | CSV and TSV assets are autonomously profiled and a blueprint is generated for them |
+| **Vision inputs** | Images, screenshots, and attachments are routed to the Gemini multimodal pipeline |
+
+---
+
 ## 🧠 Engineering Challenges & Solutions
 
-This section documents the real problems hit while building Ubair OS and how each was solved.
-
-### 1. Free-tier cold starts
-**Problem:** Serverless free tiers spin down idle instances, causing ~50-second cold boots on the first request.
-**Solution:** A cron-based keep-alive mesh pings the FastAPI gateway every 300 seconds, and workloads are partitioned into independent instances to stay within monthly hour limits.
+### 1. Unbounded context vs. zero persistence
+**Problem:** An ephemeral chat still needs short-term memory, but writing it to a database defeats the point.
+**Solution:** Redis holds a 20-message sliding window per session using `RPUSH` followed by `LTRIM`, applied atomically so concurrent requests cannot grow or corrupt the window. Connection pooling keeps per-request overhead low. The client session ID is in-memory only, so a page reload orphans the Redis window completely.
 
 ### 2. Provider rate limits killing conversations
 **Problem:** A single LLM provider returning `429` or `503` would end the user's stream.
-**Solution:** A self-healing router walks a four-tier chat mesh — Groq, Mistral AI, OpenRouter, and Gemini. Each hop preserves the conversation tree, RAG context, and execution state, so the SSE stream continues uninterrupted.
+**Solution:** A self-healing router walks the inference fleet (Groq → Mistral AI → OpenRouter → Gemini). Each hop reuses the same windowed context, so the SSE stream continues uninterrupted.
 
 ### 3. One model can't be best at everything
-**Problem:** Chat, web search synthesis, and vision have very different latency and capability needs. Forcing them through one model made all three worse.
-**Solution:** Workloads are split into dedicated pipelines: the chat mesh for conversation, Cerebras for search synthesis and query expansion, and Gemini for multimodal vision. Each runs on the engine best suited to it.
+**Problem:** Chat, search synthesis, vision, and deep reasoning have very different latency and capability needs.
+**Solution:** Workloads run in dedicated pipelines: the chat fleet for conversation, Cerebras for fast search synthesis, Gemini for multimodal vision, and Forge (120B) for deep architectural reasoning.
 
-### 4. Keeping the free-tier backend focused on API work
-**Problem:** A free-tier backend has limited capacity, and serving UI assets from it would waste that capacity.
-**Solution:** The Next.js 16 frontend is served from the Vercel Edge Network (global CDN), so the Render-hosted FastAPI gateway only handles API, streaming, and inference orchestration traffic.
+### 4. Protecting scarce heavyweight reasoning capacity
+**Problem:** A 120B reasoning engine is expensive; unrestricted access would exhaust it.
+**Solution:** Forge is opt-in per session and governed by a dynamic 3-hour rolling quota, so capacity is shared fairly without a hard daily cliff.
 
-### 5. Particle rendering performance
+### 5. Hostile or unusable uploads
+**Problem:** Oversized files and image-only PDFs waste inference budget and produce confusing output.
+**Solution:** A 15MB boundary is enforced on both client and server, and scanned PDFs are detected up front and answered with a clear fallback notice.
+
+### 6. Particle rendering performance
 **Problem:** Computing radial gradients per particle per frame throttles the CPU, especially on mobile.
-**Solution:** Particles are pre-rendered once into offscreen sprites and blitted each frame with 3D perspective transforms (`pitch`, `yaw`, `rotation`) — heavy math moves out of the hot loop.
+**Solution:** The Ambient Cosmic Galaxy pre-renders particles once into offscreen sprites and blits them each frame using trigonometric 2D/3D projection — no external WebGL dependency, 60–120 FPS.
 
-### 6. Hydration mismatches
+### 7. Hydration mismatches
 **Problem:** Time-based greetings render differently on server and client, causing React hydration errors.
-**Solution:** Greetings and tenure milestones are computed client-side after hydration, which also removes the need for extra database roundtrips or permission prompts.
+**Solution:** Greetings and tenure milestones are computed client-side after hydration.
 
-### 7. Mobile gesture-bar collisions
+### 8. Mobile gesture-bar collisions
 **Problem:** Input controls overlapped system gesture areas on phones.
 **Solution:** A dedicated safe-area padded input dock and compacting header layout.
 
@@ -268,12 +309,12 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 | Workstation | What it does |
 | --- | --- |
-| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code, web search synthesis, search navigation, and audio synthesis triggers |
-| **Workspace Canvas** | Project isolation with dedicated vector memory, custom documents, and persistent context vaults |
-| **Assessment Arena & Forge** | Multi-model cognitive evaluation, Socratic defense, and architectural reasoning powered by the core reasoning fleet |
+| **Neural Chat** | Streaming multi-model chat with markdown, syntax-highlighted code with one-click copy, turn-number jump, message search, Web Speech dictation, and real-time TTS |
+| **Workspace Canvas** | Multi-tenant project isolation with vector document vaults and long-term memory |
+| **Forge** | Deep Logic Mode: 120B architectural reasoning on a rolling 3-hour quota |
 | **Image Studio** | Image generation and editing workstation |
 | **Slate** | Lightweight scratch workspace for notes and ideas |
-| **Founder Inbox** | Release notes, direct broadcasts, and milestones with local pin / read / dismiss controls |
+| **Founder Inbox** | Release notes, broadcasts, and milestones with local pin / read / dismiss controls |
 
 ---
 
@@ -281,16 +322,17 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 | Layer | Technologies | Purpose |
 | --- | --- | --- |
-| **Frontend** | Next.js 16 (App Router), React 19, TypeScript | SSR, Turbopack bundling, strict type safety |
-| **Styling** | Tailwind CSS, custom Canvas 2D engine | Dark-tier design with high-FPS particle physics |
-| **API Gateway** | Python 3.11, FastAPI, Uvicorn, AsyncIO | Async streaming and multipart form handling |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript | SSR, strict type safety, edge delivery |
+| **Styling & Canvas** | Tailwind CSS, custom Canvas 2D engine | Dark-tier design, offscreen sprite blitting at 60–120 FPS |
+| **API Gateway** | Python 3.11, FastAPI, AsyncIO, Uvicorn (`backend-fastapi/`) | Async streaming, multipart handling, upload enforcement |
+| **Cache / Ephemeral State** | Redis (connection pooling) | 20-message atomic sliding window via `RPUSH` / `LTRIM` |
+| **Persistence & Vectors** | Supabase PostgreSQL, pgvector | Workspace storage, RAG embeddings, long-term memory |
 | **Auth** | NextAuth.js, Google OAuth 2.0 | Isolated user sessions, zero password footprint |
-| **Vector DB** | Supabase, PostgreSQL, pgvector | Document embeddings, user tiers, feedback storage |
-| **Chat Inference Mesh** | Groq (Chat LPU), Mistral AI (Reasoning), OpenRouter (Mesh), Google Gemini (Context Fallback) | Four-tier failover mesh for primary chat |
-| **Search Compute** | Cerebras | Web search synthesis and query expansion |
-| **Multimodal Vision** | Google Gemini | Attachment analysis, screenshots, and document RAG indexing |
-| **Edge Network** | Vercel Edge Network (Global CDN) | Global delivery for the Next.js 16 frontend |
-| **Hosting & Orchestration** | Vercel (Edge UI), Render (FastAPI Gateway), Cron-job.org (Keep-alive mesh) | 24/7 deployment with keep-alive orchestration |
+| **Inference Fleet** | Groq LPU (120B / 20B), Google Gemini (2.5 / 3.5), Mistral AI, OpenRouter | Primary chat, reasoning, failover, long-context safety net |
+| **Search Synthesis** | Cerebras | Fast web search synthesis |
+| **Multimodal Vision** | Google Gemini | Attachment, screenshot, and document analysis |
+| **Voice** | Web Speech API, TTS audio generation | Dictation and spoken responses |
+| **Hosting** | Vercel (frontend), FastAPI gateway host, managed Redis, Supabase | Edge UI plus async API tier |
 
 ---
 
@@ -298,9 +340,9 @@ This section documents the real problems hit while building Ubair OS and how eac
 
 ```text
 ubair-os/
-├── frontend-nextjs/        # Next.js 16 app (App Router)
+├── frontend-nextjs/        # Next.js 16 app (App Router, React 19, TypeScript)
 │   └── public/assets/      # Logo and static assets
-├── backend/                # FastAPI async gateway
+├── backend-fastapi/        # FastAPI async gateway (Python 3.11)
 │   ├── app/
 │   │   └── main.py         # Application entry point
 │   └── requirements.txt
@@ -317,9 +359,10 @@ ubair-os/
 ### Prerequisites
 
 - **Node.js** v18.18 or higher
-- **Python** v3.10 or higher
+- **Python** 3.11
+- **Redis** (local instance or managed)
 - **Git**
-- A **Supabase** project, a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini
+- A **Supabase** project (with the `pgvector` extension enabled), a **Google OAuth** client, and API keys for Groq, Cerebras, Mistral AI, OpenRouter, and Gemini
 
 ### 1. Clone the repository
 
@@ -328,26 +371,21 @@ git clone https://github.com/Md-Salik-Ubair/ubair-os.git
 cd ubair-os
 ```
 
-### 2. Start the frontend
+### 2. Start Redis
 
 ```bash
-cd frontend-nextjs
-npm install
-```
+# Docker (quickest)
+docker run -d --name ubair-redis -p 6379:6379 redis:7
 
-Create `frontend-nextjs/.env.local` (see [Environment Variables](#-environment-variables)), then:
-
-```bash
-npm run dev
+# or use a locally installed server
+redis-server
 ```
 
 ### 3. Start the backend
 
-Open a second terminal in the project root:
-
 ```bash
-cd backend
-python -m venv venv
+cd backend-fastapi
+python3.11 -m venv venv
 
 # Windows
 venv\Scripts\activate
@@ -355,7 +393,27 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
+```
+
+Create `backend-fastapi/.env` (see [Environment Variables](#-environment-variables)), then:
+
+```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 4. Start the frontend
+
+Open a second terminal in the project root:
+
+```bash
+cd frontend-nextjs
+npm install
+```
+
+Create `frontend-nextjs/.env.local`, then:
+
+```bash
+npm run dev
 ```
 
 Open **http://localhost:3000** — you're in.
@@ -374,19 +432,21 @@ Open **http://localhost:3000** — you're in.
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `NEXT_PUBLIC_API_URL` | Backend gateway URL (`http://localhost:8000` locally) |
 
-**Backend** — `backend/.env`
+**Backend** — `backend-fastapi/.env`
 
 | Variable | Description |
 | --- | --- |
+| `REDIS_URL` | Redis connection string (e.g. `redis://localhost:6379/0`) for the sliding-window cache |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (**never expose to the client**) |
-| `GROQ_API_KEY` | Chat Tier 1 — ultra-low latency LPU streaming |
-| `MISTRAL_API_KEY` | Chat Tier 2 — architectural reasoning and code generation |
-| `OPENROUTER_API_KEY` | Chat Tier 3 — universal open-source failover mesh |
-| `GEMINI_API_KEY` | Chat Tier 4 fallback, plus the dedicated multimodal vision engine |
-| `CEREBRAS_API_KEY` | Dedicated engine for web search synthesis and query expansion |
+| `GROQ_API_KEY` | Groq LPU inference (120B / 20B) |
+| `MISTRAL_API_KEY` | Mistral AI reasoning and code generation |
+| `OPENROUTER_API_KEY` | OpenRouter open-source failover |
+| `GEMINI_API_KEY` | Gemini chat fallback and multimodal vision |
+| `CEREBRAS_API_KEY` | Fast search synthesis |
 
 > 💡 Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
+> ⚠️ Variable names above should match your backend's settings module; adjust `REDIS_URL` if your gateway reads host/port/password separately.
 
 ---
 
@@ -394,32 +454,39 @@ Open **http://localhost:3000** — you're in.
 
 | Component | Platform | Notes |
 | --- | --- | --- |
-| Frontend | **Vercel Edge** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
-| Backend | **Render Web Service** | Web service running `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Keep-alive | **Cron-job.org** | Ping the gateway every 300 seconds to avoid cold starts |
+| Frontend | **Vercel** | Connect the repo, set root directory to `frontend-nextjs`, add env vars |
+| Backend | **FastAPI web service** | Run `uvicorn app.main:app --host 0.0.0.0 --port $PORT` with root directory `backend-fastapi` |
+| Cache | **Managed Redis** | Provide the connection string via `REDIS_URL` |
+| Database | **Supabase** | Enable `pgvector`; apply RLS policies before exposing Workspaces |
 
 ---
 
 ## 🔒 Security & Privacy
 
-- **Transport security:** The frontend is served over HTTPS from the Vercel Edge Network.
-- **Session isolation:** Workspaces, conversations, and uploaded documents are bound to authenticated Google OAuth identities.
+- **Zero-persistence default:** Temporary Chat performs no persistent database logging. Its session ID is transient and in-memory, and is wiped completely on page reload.
+- **Bounded server-side state:** Ephemeral context lives only in Redis, capped at a 20-message atomic sliding window.
+- **Multi-tenant isolation:** Workspaces are isolated by user email and workspace ID, and bound to authenticated Google OAuth identities.
 - **Row Level Security:** Supabase RLS policies restrict data access per user.
+- **Defense-in-depth uploads:** The 15MB per-file boundary is enforced at the client and again at the FastAPI endpoints; the server never trusts client-side validation.
+- **Graceful degradation:** Image-only (scanned) PDFs are detected and answered with a fallback notice rather than processed blindly.
+- **Transport security:** The frontend is served over HTTPS from the Vercel Edge Network.
 - **No public model training:** User code, documents, and prompts are not sold or submitted to public training datasets.
-- **Ephemeral Quick Chat:** Sessions follow an automated 24-hour client memory purge.
-- **Secrets stay server-side:** Service keys and provider API keys live only in backend environment variables.
+- **Secrets stay server-side:** Service-role keys, Redis credentials, and provider API keys live only in backend environment variables.
 
 ---
 
 ## 🧭 Roadmap
 
-- [x] Four-tier chat failover mesh (Groq → Mistral AI → OpenRouter → Gemini)
-- [x] Cerebras-powered web search synthesis & query expansion
-- [x] Gemini multimodal vision pipeline
-- [x] Vector RAG memory with per-project isolation
-- [x] Offscreen canvas particle engine (60–120 FPS)
+- [x] Temporary Chat with zero-persistence default
+- [x] Redis 20-message atomic sliding window with connection pooling
+- [x] Multi-tenant Workspaces with pgvector document vaults
+- [x] Forge Deep Logic Mode with 3-hour rolling quota
+- [x] Multi-provider inference fleet with automatic failover
+- [x] Cerebras search synthesis & Gemini multimodal vision
+- [x] 15MB upload boundaries, scanned-PDF detection, CSV/TSV profiling
+- [x] Ambient Cosmic Galaxy canvas (60–120 FPS)
+- [x] Web Speech dictation & real-time TTS
 - [x] Mobile-optimized input dock & gesture safety
-- [x] Founder notification inbox with persistent broadcast channel
 - [ ] Autonomous tool-use execution agent (Web Search & Code Interpreter)
 - [ ] Multi-document batch embedding pipelines
 
@@ -442,13 +509,14 @@ Contributions, issues, and feature ideas are welcome.
 <div align="center">
 
 **Md Salik Ubair**
-B.Tech CSE (AI/ML) • Full-Stack Python Developer
+B.Tech CSE (AI/ML) • Full-Stack AI Engineer
 
 [![GitHub](https://img.shields.io/badge/GitHub-Md--Salik--Ubair-181717?style=for-the-badge&logo=github)](https://github.com/Md-Salik-Ubair)
+[![Live App](https://img.shields.io/badge/Live-ubair--os.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://ubair-os.vercel.app)
 
 </div>
 
-> *"Ubair OS was not built in a weekend hackathon. It was born out of 12+ months of continuous engineering, hundreds of late-night debugging sessions, resolving silent hook misalignments, and solving free-tier cloud limits. The mission was singular: to create a sovereign, fast, and beautiful intelligence tool built by a developer, for developers. This repository stands as living proof of what relentless focus can produce."*
+> *"Ubair OS was not built in a weekend hackathon. It was born out of sustained engineering: resolving silent hook misalignments, designing around provider limits, and treating privacy as an architectural default rather than a settings toggle. The mission was singular: a sovereign, fast, and beautiful intelligence tool built by an engineer, for engineers."*
 
 ---
 
