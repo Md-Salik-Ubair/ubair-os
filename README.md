@@ -124,9 +124,9 @@ Ubair OS answers a different question: *what if an AI workspace were ephemeral b
 | --- | --- | --- | --- |
 | **Temporary Chat** *(default Quick Mode)* | **None.** Transient in-memory session ID that wipes completely on page reload. Zero persistent database logging. | Redis 20-message sliding window | Quick questions, sensitive prompts, scratch reasoning |
 | **Workspaces** | Persistent, multi-tenant. Directories isolated by **user email + workspace ID**. | Vector document vaults (pgvector) + long-term memory | Ongoing projects, document-grounded chat |
-| **Forge Deep Logic** | Toggled on demand on top of a session | 120B parameter architectural reasoning engine | Deep system design, hard debugging, multi-step logic |
+| **Forge Deep Logic** | Toggled on demand | Dedicated 120B parameter architectural reasoning engine | Deep system design, hard debugging, multi-step logic |
 
-> **Forge quota:** Forge runs under a dynamic **3-hour rolling quota management system**, so heavyweight reasoning capacity stays available across the fleet.
+> **Forge quota:** Forge runs under a dynamic **3-hour rolling quota management system**.
 
 ---
 
@@ -185,7 +185,7 @@ flowchart TD
     V1 -.->|"document indexing"| D1
 ```
 
-> **Temporary Chat never touches Supabase.** Its only state lives in Redis (bounded to 20 messages) and in a transient client-side session ID that disappears on reload.
+> **Temporary Chat performs zero persistent database logging.** Its conversational state lives in Redis (bounded to a 20-message window) and in a transient in-memory session ID that disappears on reload.
 
 ### Chat Failover Flow
 
@@ -273,7 +273,7 @@ sequenceDiagram
 
 ### 1. Unbounded context vs. zero persistence
 **Problem:** An ephemeral chat still needs short-term memory, but writing it to a database defeats the point.
-**Solution:** Redis holds a 20-message sliding window per session using `RPUSH` followed by `LTRIM`, applied atomically so concurrent requests cannot grow or corrupt the window. Connection pooling keeps per-request overhead low. The client session ID is in-memory only, so a page reload orphans the Redis window completely.
+**Solution:** Redis holds a 20-message atomic sliding window per session using `RPUSH` followed by `LTRIM`, with connection pooling to keep per-request overhead low. The session ID is transient and in-memory only, so a page reload starts a completely fresh session.
 
 ### 2. Provider rate limits killing conversations
 **Problem:** A single LLM provider returning `429` or `503` would end the user's stream.
@@ -284,8 +284,8 @@ sequenceDiagram
 **Solution:** Workloads run in dedicated pipelines: the chat fleet for conversation, Cerebras for fast search synthesis, Gemini for multimodal vision, and Forge (120B) for deep architectural reasoning.
 
 ### 4. Protecting scarce heavyweight reasoning capacity
-**Problem:** A 120B reasoning engine is expensive; unrestricted access would exhaust it.
-**Solution:** Forge is opt-in per session and governed by a dynamic 3-hour rolling quota, so capacity is shared fairly without a hard daily cliff.
+**Problem:** A 120B reasoning engine is a heavyweight resource; unrestricted access would exhaust it.
+**Solution:** Forge is toggled on demand and governed by a dynamic 3-hour rolling quota management system.
 
 ### 5. Hostile or unusable uploads
 **Problem:** Oversized files and image-only PDFs waste inference budget and produce confusing output.
@@ -446,6 +446,7 @@ Open **http://localhost:3000** — you're in.
 | `CEREBRAS_API_KEY` | Fast search synthesis |
 
 > 💡 Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
+>
 > ⚠️ Variable names above should match your backend's settings module; adjust `REDIS_URL` if your gateway reads host/port/password separately.
 
 ---
@@ -516,7 +517,7 @@ B.Tech CSE (AI/ML) • Full-Stack AI Engineer
 
 </div>
 
-> *"Ubair OS was not built in a weekend hackathon. It was born out of sustained engineering: resolving silent hook misalignments, designing around provider limits, and treating privacy as an architectural default rather than a settings toggle. The mission was singular: a sovereign, fast, and beautiful intelligence tool built by an engineer, for engineers."*
+> *"Ubair OS was not built in a weekend hackathon. It was born out of continuous engineering, late-night debugging, resolving silent hook misalignments, and solving free-tier cloud limits. The mission was singular: to create a sovereign, fast, and beautiful intelligence tool built by a developer, for developers."*
 
 ---
 
