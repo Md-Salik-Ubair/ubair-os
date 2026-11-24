@@ -445,9 +445,14 @@ function LoginContent() {
             priority
             className="object-contain opacity-95 mb-3.5 drop-shadow-[0_2px_18px_rgba(255,255,255,0.18)]"
           />
-          <p className="text-[13.5px] sm:text-[14px] text-neutral-300 font-normal tracking-[0.02em] max-w-[320px] leading-relaxed drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
-            Where human thought meets intelligence.
-          </p>
+          <div className="flex flex-col items-center gap-2 text-center">
+  <p className="text-[13.5px] sm:text-[14px] text-neutral-300 font-normal tracking-[0.02em] leading-relaxed drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+    Never stops thinking. Never holds on to what it sees.
+  </p>
+  <p className="text-[10.5px] text-neutral-500 font-normal tracking-[0.08em] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+    A product by Md Salik Ubair
+  </p>
+</div>
         </div>
 
         {/* OAuth Authentication Status Toast[cite: 35] */}
