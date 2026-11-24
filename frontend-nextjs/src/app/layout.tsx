@@ -18,17 +18,21 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// 2. Production-Grade Metadata with Real Brand Icon Linking
+// 2. Production-Grade Metadata with Google Verification & Brand Ownership
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://ubair-os.vercel.app'),
   title: {
-    default: 'Ubair OS',
+    default: 'Ubair OS — Neural Workspace by Md Salik Ubair',
     template: '%s · Ubair OS',
   },
-  description: 'Ubair OS Elite Intelligence Platform & Neural Workspace founded by Md Salik Ubair.',
+  description: 'Ubair OS is an autonomous multi-model AI operating system and neural workspace architected by Md Salik Ubair.',
   applicationName: 'Ubair OS',
-  authors: [{ name: 'Md Salik Ubair', url: 'https://ubair.os' }],
-  keywords: ['Ubair OS', 'Neural Workspace', 'Intelligence Platform', 'AI Studio', 'Multimodal LLM'],
+  authors: [{ name: 'Md Salik Ubair', url: 'https://portfolio-salik-live.vercel.app' }],
+  creator: 'Md Salik Ubair',
+  keywords: ['Ubair OS', 'Md Salik Ubair', 'Neural Workspace', 'AI Operating System', 'AI Studio', 'Multimodal LLM'],
+  verification: {
+    google: '9ZO4TYBPHZiy2Pidi8Z4gLYj6sEZVVMz10rMl6jBRtI',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -42,8 +46,9 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   openGraph: {
-    title: 'Ubair OS — Neural Workspace',
-    description: 'Ubair OS Elite Intelligence Platform & Neural Workspace',
+    title: 'Ubair OS — Neural Workspace by Md Salik Ubair',
+    description: 'Ubair OS is an autonomous multi-model AI operating system and neural workspace architected by Md Salik Ubair.',
+    url: 'https://ubair-os.vercel.app',
     siteName: 'Ubair OS',
     type: 'website',
     images: [
@@ -57,8 +62,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Ubair OS — Neural Workspace',
-    description: 'Ubair OS Elite Intelligence Platform & Neural Workspace',
+    title: 'Ubair OS — Neural Workspace by Md Salik Ubair',
+    description: 'Ubair OS is an autonomous multi-model AI operating system and neural workspace architected by Md Salik Ubair.',
     images: ['/assets/ubair-logo.png'],
   },
   robots: {
