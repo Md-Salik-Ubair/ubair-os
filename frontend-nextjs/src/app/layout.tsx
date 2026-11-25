@@ -21,12 +21,15 @@ export const viewport: Viewport = {
 // 2. Production-Grade Metadata with Google Verification & Brand Ownership
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://ubair-os.vercel.app'),
+  alternates: {
+    canonical: 'https://ubair-os.vercel.app',
+  },
   title: {
     default: 'Ubair OS — Md Salik Ubair | Autonomous AI OS',
     template: '%s · Ubair OS',
   },
   description:
-    'Ubair OS is an Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace architected by Founder & Principal Architect Md Salik Ubair.',
+    'Ubair OS is an Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace founded and architected by Md Salik Ubair.',
   applicationName: 'Ubair OS',
   authors: [
     { name: 'Md Salik Ubair', url: 'https://github.com/Md-Salik-Ubair' },
@@ -60,7 +63,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Ubair OS — Md Salik Ubair | Autonomous AI OS',
     description:
-      'Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace by Founder & Principal Architect Md Salik Ubair.',
+      'Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace founded and architected by Md Salik Ubair.',
     url: 'https://ubair-os.vercel.app',
     siteName: 'Ubair OS',
     type: 'website',
@@ -77,7 +80,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'Ubair OS — Md Salik Ubair | Autonomous AI OS',
     description:
-      'Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace by Founder & Principal Architect Md Salik Ubair.',
+      'Autonomous Multi-Model AI Operating System & Sovereign Neural Workspace founded and architected by Md Salik Ubair.',
     images: ['/assets/ubair-logo.png'],
   },
   robots: {
@@ -86,10 +89,36 @@ export const metadata: Metadata = {
   },
 };
 
-// 3. Structured Entity Schema for Google & Bing AI Knowledge Graphs
+// 3. Closed-Loop Entity Graph (Brand + WebSite + SoftwareApplication + Founder)
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
+    {
+      '@type': ['Organization', 'Brand'],
+      '@id': 'https://ubair-os.vercel.app/#organization',
+      name: 'Ubair OS',
+      url: 'https://ubair-os.vercel.app',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://ubair-os.vercel.app/assets/ubair-logo.png',
+      },
+      founder: {
+        '@id': 'https://ubair-os.vercel.app/#founder',
+      },
+      sameAs: [
+        'https://github.com/Md-Salik-Ubair/ubair-os',
+        'https://www.instagram.com/ubair.os',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://ubair-os.vercel.app/#website',
+      url: 'https://ubair-os.vercel.app',
+      name: 'Ubair OS',
+      publisher: {
+        '@id': 'https://ubair-os.vercel.app/#organization',
+      },
+    },
     {
       '@type': 'SoftwareApplication',
       '@id': 'https://ubair-os.vercel.app/#software',
@@ -100,11 +129,19 @@ const jsonLd = {
       url: 'https://ubair-os.vercel.app',
       description:
         'Autonomous Multi-Model AI Operating System featuring a 4-tier LLM inference failover mesh, dual Redis/pgvector memory engine, verified search synthesis, and seven specialized workstations.',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      creator: {
+        '@id': 'https://ubair-os.vercel.app/#founder',
+      },
       founder: {
         '@id': 'https://ubair-os.vercel.app/#founder',
       },
-      author: {
-        '@id': 'https://ubair-os.vercel.app/#founder',
+      publisher: {
+        '@id': 'https://ubair-os.vercel.app/#organization',
       },
     },
     {
@@ -113,6 +150,16 @@ const jsonLd = {
       name: 'Md Salik Ubair',
       jobTitle: 'Founder & Principal Architect',
       url: 'https://github.com/Md-Salik-Ubair',
+      worksFor: {
+        '@id': 'https://ubair-os.vercel.app/#organization',
+      },
+      knowsAbout: [
+        'Artificial Intelligence',
+        'Multi-Model LLM Orchestration',
+        'Retrieval-Augmented Generation',
+        'Distributed Systems Architecture',
+        'Full-Stack AI Engineering',
+      ],
       sameAs: [
         'https://github.com/Md-Salik-Ubair',
         'https://github.com/Md-Salik-Ubair/ubair-os',
