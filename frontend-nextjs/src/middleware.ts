@@ -15,8 +15,8 @@ export const config = {
      * - /_next/static (Static chunks)
      * - /_next/image (Image optimization)
      * - /assets (Brand assets, logos, wordmarks)
-     * - Static asset file extensions (*.png, *.svg, *.ico, etc.)
+     * - Static & SEO files (favicon.ico, site.webmanifest, sitemap.xml, robots.txt)
      */
-    '/((?!login|api/auth|_next/static|_next/image|assets|favicon\\.ico|site\\.webmanifest|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|mp3|wav|json|webmanifest)$).*)',
+    '/((?!login|api/auth|_next/static|_next/image|assets|favicon\\.ico|site\\.webmanifest|sitemap\\.xml|robots\\.txt|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|mp3|wav|json|webmanifest)$).*)',
   ],
 };
